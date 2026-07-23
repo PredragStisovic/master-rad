@@ -68,7 +68,8 @@ src/
     notifications/  audit-log/  search/  reports/
 prisma/               # schema.prisma, migrations/, seed.ts
 test/                 # e2e (supertest)
-docker/               # Dockerfile, docker-compose.yml
+Dockerfile            # multi-stage build (builder -> runtime)
+docker-compose.yaml   # app + postgres
 .github/workflows/    # CI (added late)
 ```
 
