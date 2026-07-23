@@ -1,4 +1,11 @@
 {
   "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // The Prisma 7 client is generated as TypeScript with explicit .ts import
+    // specifiers; without rewriting them the emitted JS requires files like
+    // ./internal/class.ts and the compiled app fails at runtime. Scoped to the
+    // build so ts-jest (which extends tsconfig.json) keeps resolving .ts on disk.
+    "rewriteRelativeImportExtensions": true
+  },
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
 }
