@@ -47,6 +47,13 @@ meaningful commits) — it is part of the dataset.
   Guards (auth / roles / permissions / project-scope) are cross-cutting policy.
 - Keep new code in the established layout: cross-cutting infra in `src/common`, `src/config`,
   `src/prisma`; feature modules under `src/modules/<name>/`.
+- **A service exposes only the methods its controller calls.** Everything else — guard clauses
+  (`assertX` / `getExistingX`), query builders, mappers, any logic shared between endpoints —
+  goes into an injectable `<name>.helper.ts` (`UsersHelper`) that the service depends on. No
+  `private` support methods on services; the service method should read as the endpoint's
+  orchestration and nothing more. See `src/modules/users/` for the reference shape.
+- Test each unit against its own collaborators: `<name>.service.spec.ts` mocks the helper and the
+  repository; `<name>.helper.spec.ts` mocks the repository and covers the guard/query logic.
 - Match the surrounding code's style, naming, and test conventions. Prefer reusing existing
   `common/` utilities (pagination DTO, exception filter, decorators) over new ones.
 
