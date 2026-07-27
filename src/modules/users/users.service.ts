@@ -17,7 +17,9 @@ export class UsersService {
 
   async create(dto: CreateUserDto): Promise<UserEntity> {
     await this.usersHelper.assertEmailIsFree(dto.email);
-    await this.usersHelper.assertRoleExists(dto.roleId);
+    if (dto.roleId) {
+      await this.usersHelper.assertRoleExists(dto.roleId);
+    }
 
     dto.password = await bcrypt.hash(dto.password, 10);
 
