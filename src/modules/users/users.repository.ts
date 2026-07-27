@@ -51,6 +51,15 @@ export class UsersRepository {
     });
   }
 
+  findByEmailWithPassword(
+    email: string,
+  ): Promise<(UserEntity & { password: string }) | null> {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: { ...userSelect, password: true },
+    });
+  }
+
   update(
     id: number,
     data: Prisma.UserUncheckedUpdateInput,
