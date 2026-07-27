@@ -6,6 +6,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from './entities/user.entity';
 import { UsersHelper } from './users.helper';
 import { UsersRepository } from './users.repository';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -17,6 +18,8 @@ export class UsersService {
   async create(dto: CreateUserDto): Promise<UserEntity> {
     await this.usersHelper.assertEmailIsFree(dto.email);
     await this.usersHelper.assertRoleExists(dto.roleId);
+
+    dto.password = await bcrypt.hash(dto.password, 10);
 
     return this.usersRepository.create(dto);
   }
