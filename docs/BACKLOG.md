@@ -123,6 +123,19 @@ Legend — **Risk** = expected _merge_ risk (the thesis label): **L** / **M** / 
 > The **LLM Risk Assessment** stage is intentionally _out of this backlog_ — it is the thesis
 > instrument added on top of PR-55/57 once the development history exists.
 
+## To implement
+
+Additional things not listed originally in backlog. It includes bugfixes or glossed over things
+
+| #   | Branch                       | Goal                                 | Risk | Cx  | Size | Deps | Own |
+| --- | ---------------------------- | ------------------------------------ | ---- | --- | ---- | ---- | --- |
+| 58  | feature/create-refresh-token | Create a migration for refresh token | L    | ○   | S    | 13   | U   |
+| 59  | feature/add-default-role     | Add default role                     | M    | ○   | S    |      | U   |
+|     |                              |                                      |      | ○   |      |      | U   |
+|     |                              |                                      |      | ◐   |      |      | U   |
+|     |                              |                                      |      | ○   |      |      | U   |
+|     |                              |                                      |      | ○   |      |      | U   |
+
 ## Dependency structure
 
 - **Critical spine:** 01 → 02 → 03 → (07, 08). Everything hangs off Prisma + base entities.
