@@ -17,13 +17,14 @@ export class UsersService {
 
   async create(dto: CreateUserDto): Promise<UserEntity> {
     await this.usersHelper.assertEmailIsFree(dto.email);
-    if (dto.roleId) {
-      await this.usersHelper.assertRoleExists(dto.roleId);
-    }
 
-    dto.password = await bcrypt.hash(dto.password, 10);
+    const roleId = await this.usersHelper.resolveRoleId(dto.roleId);
 
-    return this.usersRepository.create(dto);
+    return this.usersRepository.create({
+      ...dto,
+      roleId,
+      password: await bcrypt.hash(dto.password, 10),
+    });
   }
 
   async findAll(query: QueryUsersDto): Promise<PaginatedResult<UserEntity>> {

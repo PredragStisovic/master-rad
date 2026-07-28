@@ -1,8 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -31,7 +32,12 @@ export class CreateUserDto {
   @MaxLength(50)
   lastName: string;
 
-  @ApiProperty({ example: 1, description: 'Identifier of an existing role' })
+  @ApiPropertyOptional({
+    example: 1,
+    description:
+      'Identifier of an existing role — defaults to the `user` role when omitted',
+  })
+  @IsOptional()
   @IsInt()
   roleId?: number;
 }
