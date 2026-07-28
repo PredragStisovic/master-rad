@@ -35,7 +35,14 @@ jobs:
           node-version: 24
           cache: npm
 
-      - run: npm ci
+      - run: |
+          if [ -f package-lock.json ]; then
+            echo "Using npm ci (lockfile found)"
+            npm ci
+          else
+            echo "No package-lock.json found — running npm install"
+            npm install
+          fi
 
       - run: npm run build
 
