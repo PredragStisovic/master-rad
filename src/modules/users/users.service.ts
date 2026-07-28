@@ -49,6 +49,12 @@ export class UsersService {
     return this.usersHelper.getExistingUser(id);
   }
 
+  findOneWithPasswordByEmail(
+    email: string,
+  ): Promise<UserEntity & { password: string }> {
+    return this.usersHelper.getExistingUserWithPasswordByEmail(email);
+  }
+
   async update(id: number, dto: UpdateUserDto): Promise<UserEntity> {
     await this.usersHelper.getExistingUser(id);
 

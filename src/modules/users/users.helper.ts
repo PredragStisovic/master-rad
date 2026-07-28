@@ -47,6 +47,18 @@ export class UsersHelper {
     return user;
   }
 
+  async getExistingUserWithPasswordByEmail(
+    email: string,
+  ): Promise<UserEntity & { password: string }> {
+    const user = await this.usersRepository.findByEmailWithPassword(email);
+
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+
+    return user;
+  }
+
   async assertEmailIsFree(email: string, ignoreId?: number): Promise<void> {
     const existing = await this.usersRepository.findByEmail(email);
 
