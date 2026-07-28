@@ -39,3 +39,13 @@ model Permission {
 
   @@map("permissions")
 }
+
+model RefreshToken {
+  id  Int    @id @default(autoincrement())
+  
+  userId Int @map("user_id")
+  tokenHash String @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+
+  revokedAt DateTime? @map("revoked_at")
+}
