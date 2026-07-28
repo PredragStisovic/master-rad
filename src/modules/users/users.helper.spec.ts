@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { RolesRepository } from '../roles/roles.repository';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UserEntity } from './entities/user.entity';
 import { UsersHelper } from './users.helper';
@@ -23,22 +25,30 @@ const createRepositoryMock = () => ({
   roleExists: jest.fn().mockResolvedValue(true),
 });
 
+const createRolesRepositoryMock = () => ({
+  findIdByName: jest.fn().mockResolvedValue(3),
+});
+
 describe('UsersHelper', () => {
   let helper: UsersHelper;
   let repository: ReturnType<typeof createRepositoryMock>;
+  let rolesRepository: ReturnType<typeof createRolesRepositoryMock>;
 
   beforeEach(async () => {
     const repositoryMock = createRepositoryMock();
+    const rolesRepositoryMock = createRolesRepositoryMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersHelper,
         { provide: UsersRepository, useValue: repositoryMock },
+        { provide: RolesRepository, useValue: rolesRepositoryMock },
       ],
     }).compile();
 
     helper = module.get(UsersHelper);
     repository = repositoryMock;
+    rolesRepository = rolesRepositoryMock;
   });
 
   describe('buildWhere', () => {
@@ -112,6 +122,35 @@ describe('UsersHelper', () => {
 
       await expect(helper.assertRoleExists(42)).rejects.toThrow(
         BadRequestException,
+      );
+    });
+  });
+
+  describe('resolveRoleId', () => {
+    it('keeps a requested role that exists', async () => {
+      await expect(helper.resolveRoleId(2)).resolves.toBe(2);
+      expect(rolesRepository.findIdByName).not.toHaveBeenCalled();
+    });
+
+    it('rejects a requested role that does not exist', async () => {
+      repository.roleExists.mockResolvedValue(false);
+
+      await expect(helper.resolveRoleId(42)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('falls back to the default role when none is requested', async () => {
+      await expect(helper.resolveRoleId()).resolves.toBe(3);
+      expect(rolesRepository.findIdByName).toHaveBeenCalledWith('user');
+      expect(repository.roleExists).not.toHaveBeenCalled();
+    });
+
+    it('throws when the default role is missing', async () => {
+      rolesRepository.findIdByName.mockResolvedValue(null);
+
+      await expect(helper.resolveRoleId()).rejects.toThrow(
+        InternalServerErrorException,
       );
     });
   });

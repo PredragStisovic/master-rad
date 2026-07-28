@@ -2,12 +2,16 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../../../generated/prisma/client';
+import { RolesRepository } from '../roles/roles.repository';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UserEntity } from './entities/user.entity';
 import { UsersRepository } from './users.repository';
+
+const DEFAULT_ROLE_NAME = 'user';
 
 /**
  * Supporting logic for `UsersService` — guard clauses and query building that
@@ -15,7 +19,10 @@ import { UsersRepository } from './users.repository';
  */
 @Injectable()
 export class UsersHelper {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly rolesRepository: RolesRepository,
+  ) {}
 
   buildWhere(query: QueryUsersDto): Prisma.UserWhereInput {
     const where: Prisma.UserWhereInput = {};
@@ -71,5 +78,24 @@ export class UsersHelper {
     if (!(await this.usersRepository.roleExists(roleId))) {
       throw new BadRequestException(`Role with id ${roleId} does not exist`);
     }
+  }
+
+  async resolveRoleId(roleId?: number): Promise<number> {
+    if (roleId !== undefined) {
+      await this.assertRoleExists(roleId);
+
+      return roleId;
+    }
+
+    const defaultRoleId =
+      await this.rolesRepository.findIdByName(DEFAULT_ROLE_NAME);
+
+    if (defaultRoleId === null) {
+      throw new InternalServerErrorException(
+        `Default role "${DEFAULT_ROLE_NAME}" is not configured`,
+      );
+    }
+
+    return defaultRoleId;
   }
 }

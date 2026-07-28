@@ -1,5 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as bcrypt from 'bcrypt';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UserEntity } from './entities/user.entity';
 import { UsersHelper } from './users.helper';
@@ -29,6 +30,7 @@ const createHelperMock = () => ({
   getExistingUser: jest.fn().mockResolvedValue(user),
   assertEmailIsFree: jest.fn().mockResolvedValue(undefined),
   assertRoleExists: jest.fn().mockResolvedValue(undefined),
+  resolveRoleId: jest.fn().mockResolvedValue(user.roleId),
 });
 
 describe('UsersService', () => {
@@ -58,8 +60,38 @@ describe('UsersService', () => {
       await expect(service.create(createDto)).resolves.toEqual(user);
 
       expect(helper.assertEmailIsFree).toHaveBeenCalledWith(createDto.email);
-      expect(helper.assertRoleExists).toHaveBeenCalledWith(createDto.roleId);
-      expect(repository.create).toHaveBeenCalledWith(createDto);
+      expect(helper.resolveRoleId).toHaveBeenCalledWith(createDto.roleId);
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: createDto.email,
+          firstName: createDto.firstName,
+          lastName: createDto.lastName,
+          roleId: user.roleId,
+        }),
+      );
+    });
+
+    it('persists the role resolved by the helper', async () => {
+      helper.resolveRoleId.mockResolvedValue(7);
+
+      await service.create({ ...createDto, roleId: undefined });
+
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({ roleId: 7 }),
+      );
+    });
+
+    it('hashes the password instead of storing it as given', async () => {
+      await service.create(createDto);
+
+      const [{ password }] = repository.create.mock.calls[0] as [
+        { password: string },
+      ];
+
+      expect(password).not.toEqual(createDto.password);
+      await expect(bcrypt.compare(createDto.password, password)).resolves.toBe(
+        true,
+      );
     });
 
     it('does not persist when a guard rejects', async () => {
