@@ -15,6 +15,10 @@ describe('UsersController (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let roleId: number;
+  let accessToken: string;
+
+  const adminEmail = 'e2e.admin@example.com';
+  const adminPassword = 'S3cretPassw0rd';
 
   const payload = {
     email: 'e2e.user@example.com',
@@ -42,6 +46,19 @@ describe('UsersController (e2e)', () => {
       update: {},
     });
     roleId = role.id;
+
+    await prisma.user.deleteMany({ where: { email: adminEmail } });
+    await request(app.getHttpServer())
+      .post('/users')
+      .send({ email: adminEmail, password: adminPassword, firstName: 'Admin', lastName: 'E2e', roleId })
+      .expect(201);
+
+    const loginResponse = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: adminEmail, password: adminPassword })
+      .expect(201);
+
+    accessToken = (loginResponse.body as { access_token: string }).access_token;
   });
 
   beforeEach(async () => {
@@ -50,6 +67,7 @@ describe('UsersController (e2e)', () => {
 
   afterAll(async () => {
     await prisma.user.deleteMany({ where: { email: payload.email } });
+    await prisma.user.deleteMany({ where: { email: adminEmail } });
     await prisma.role.deleteMany({ where: { id: roleId } });
     await prisma.$disconnect();
     await app.close();
@@ -104,6 +122,7 @@ describe('UsersController (e2e)', () => {
 
     const response = await request(app.getHttpServer())
       .get('/users')
+      .set('Authorization', `Bearer ${accessToken}`)
       .query({ page: 1, limit: 10, search: payload.email })
       .expect(200);
 
@@ -137,6 +156,7 @@ describe('UsersController (e2e)', () => {
 
     const response = await request(app.getHttpServer())
       .patch(`/users/${created.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .send({ firstName: 'Updated' })
       .expect(200);
 
@@ -148,6 +168,7 @@ describe('UsersController (e2e)', () => {
 
     await request(app.getHttpServer())
       .delete(`/users/${created.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     return request(app.getHttpServer()).get(`/users/${created.id}`).expect(404);

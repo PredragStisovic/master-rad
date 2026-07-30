@@ -133,7 +133,7 @@ Additional things not listed originally in backlog. It includes bugfixes or glos
 | 59  | feature/add-default-role     | Add default role                                              | M    | ○   | S    |       | U   |
 | 60  | fix-package-discrepancy      | Make the package.json and package-lock.json synced            | L    | ◐   | L    |       | U   |
 | 61  | ci/track-prisma-config       | Un-ignore `prisma.config.ts` so CI has a datasource           | L    | ○   | S    | 55    | C   |
-| 62  | bugfix/jwt-strategy-wiring   | Register JwtStrategy in AuthModule + add JWT_SECRET to CI env | L    | ○   | S    | 12,55 | U   |
+| 62  | bugfix/jwt-strategy-wiring   | Register JwtStrategy in AuthModule + add JWT_SECRET to CI env | L    | ○   | S    | 12,55 | C   |
 |     |                              |                                                               |      | ○   |      |       | U   |
 |     |                              |                                                               |      | ○   |      |       | U   |
 
