@@ -58,7 +58,7 @@ describe('UsersController (e2e)', () => {
       .send({ email: adminEmail, password: adminPassword })
       .expect(201);
 
-    accessToken = (loginResponse.body as { access_token: string }).access_token;
+    accessToken = unwrap<{ access_token: string }>(loginResponse).access_token;
   });
 
   beforeEach(async () => {
