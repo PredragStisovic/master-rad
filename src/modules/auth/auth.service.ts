@@ -28,8 +28,10 @@ export class AuthService {
 
   async loginUser(user: UserEntity) {
     try {
-      const payload = { email: user.email, sub: user.id };
-      const refreshToken = await this.authHelper.createAndSaveRefreshToken(user.id);
+      const payload = await this.authHelper.buildAccessTokenPayload(user);
+      const refreshToken = await this.authHelper.createAndSaveRefreshToken(
+        user.id,
+      );
       return {
         access_token: this.jwtService.sign(payload),
         refresh_token: refreshToken,
@@ -41,7 +43,10 @@ export class AuthService {
 
   async refreshJwtToken(body: any, user: UserEntity) {
     const hashedToken = this.authHelper.hashToken(body.refreshToken);
-    const existingToken = await this.refreshTokenRepository.findToken(hashedToken, user.id);
+    const existingToken = await this.refreshTokenRepository.findToken(
+      hashedToken,
+      user.id,
+    );
 
     if (!existingToken) {
       throw new NotFoundException();
@@ -51,9 +56,11 @@ export class AuthService {
     }
 
     await this.refreshTokenRepository.deleteToken(existingToken.id);
-    const newRefreshToken = await this.authHelper.createAndSaveRefreshToken(user.id);
+    const newRefreshToken = await this.authHelper.createAndSaveRefreshToken(
+      user.id,
+    );
 
-    const payload = { email: user.email, sub: user.id };
+    const payload = await this.authHelper.buildAccessTokenPayload(user);
     return {
       access_token: this.jwtService.sign(payload),
       refresh_token: newRefreshToken,
