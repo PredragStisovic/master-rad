@@ -127,15 +127,15 @@ Legend — **Risk** = expected _merge_ risk (the thesis label): **L** / **M** / 
 
 Additional things not listed originally in backlog. It includes bugfixes or glossed over things
 
-| #   | Branch                       | Goal                                               | Risk | Cx  | Size | Deps | Own |
-| --- | ---------------------------- | -------------------------------------------------- | ---- | --- | ---- | ---- | --- |
-| 58  | feature/create-refresh-token | Create a migration for refresh token               | L    | ○   | S    | 13   | U   |
-| 59  | feature/add-default-role     | Add default role                                   | M    | ○   | S    |      | U   |
-| 60  | fix-package-discrepancy      | Make the package.json and package-lock.json synced | L    | ◐   | L    |      | U   |
-| 61  | ci/track-prisma-config       | Un-ignore `prisma.config.ts` so CI has a datasource | L    | ○   | S    | 55   | C   |
-|     |                              |                                                    |      | ○   |      |      | U   |
-|     |                              |                                                    |      | ○   |      |      | U   |
-|     |                              |                                                    |      | ○   |      |      | U   |
+| #   | Branch                       | Goal                                                          | Risk | Cx  | Size | Deps  | Own |
+| --- | ---------------------------- | ------------------------------------------------------------- | ---- | --- | ---- | ----- | --- |
+| 58  | feature/create-refresh-token | Create a migration for refresh token                          | L    | ○   | S    | 13    | U   |
+| 59  | feature/add-default-role     | Add default role                                              | M    | ○   | S    |       | U   |
+| 60  | fix-package-discrepancy      | Make the package.json and package-lock.json synced            | L    | ◐   | L    |       | U   |
+| 61  | ci/track-prisma-config       | Un-ignore `prisma.config.ts` so CI has a datasource           | L    | ○   | S    | 55    | C   |
+| 62  | bugfix/jwt-strategy-wiring   | Register JwtStrategy in AuthModule + add JWT_SECRET to CI env | L    | ○   | S    | 12,55 | U   |
+|     |                              |                                                               |      | ○   |      |       | U   |
+|     |                              |                                                               |      | ○   |      |       | U   |
 
 ## Dependency structure
 
