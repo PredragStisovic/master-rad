@@ -14,6 +14,7 @@ async function bootstrap() {
     .setTitle('Task Management API')
     .setDescription('REST API for the master-rad task/project management platform')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
