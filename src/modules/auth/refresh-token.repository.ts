@@ -23,11 +23,18 @@ export class RefreshTokenRepository {
     userId: number,
   ): Promise<RefreshToken | null> {
     return await this.prisma.refreshToken.findFirst({
-      where: { tokenHash: hashedToken, userId },
+      where: { tokenHash: hashedToken, userId, revokedAt: null },
     });
   }
 
   async deleteToken(id: number): Promise<void> {
     await this.prisma.refreshToken.delete({ where: { id } });
+  }
+
+  async revokeToken(id: number): Promise<void> {
+    await this.prisma.refreshToken.update({
+      where: { id },
+      data: { revokedAt: new Date() },
+    });
   }
 }

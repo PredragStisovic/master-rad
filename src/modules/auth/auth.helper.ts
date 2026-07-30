@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
+import { RefreshToken } from '../../../generated/prisma/client';
 import { RefreshTokenRepository } from './refresh-token.repository';
 
 @Injectable()
@@ -19,5 +20,21 @@ export class AuthHelper {
     expiresAt.setMonth(expiresAt.getMonth() + 1);
     await this.refreshTokenRepository.saveTokenHash({ tokenHash: hash, userId, expiresAt });
     return token;
+  }
+
+  async getActiveRefreshToken(
+    token: string,
+    userId: number,
+  ): Promise<RefreshToken> {
+    const existingToken = await this.refreshTokenRepository.findToken(
+      this.hashToken(token),
+      userId,
+    );
+
+    if (!existingToken || existingToken.expiresAt < new Date()) {
+      throw new UnauthorizedException('Refresh token is not valid');
+    }
+
+    return existingToken;
   }
 }
