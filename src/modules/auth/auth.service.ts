@@ -6,6 +6,7 @@ import {
 import { RegisterUserDto } from './dto/register-user.dto';
 import { UsersService } from '../users/users.service';
 import { LoginUserDto } from './dto/login-user.dto';
+import { LogoutDto } from './dto/logout.dto';
 import * as bcrypt from 'bcrypt';
 import { UserEntity } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
@@ -57,6 +58,15 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
       refresh_token: newRefreshToken,
     };
+  }
+
+  async logout(userId: number, dto: LogoutDto): Promise<void> {
+    const refreshToken = await this.authHelper.getActiveRefreshToken(
+      dto.refreshToken,
+      userId,
+    );
+
+    await this.refreshTokenRepository.revokeToken(refreshToken.id);
   }
 
   getCurrentUser(userId: number): Promise<UserEntity> {
