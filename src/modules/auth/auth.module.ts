@@ -7,6 +7,8 @@ import { RolesModule } from '../roles/roles.module';
 import { RefreshTokenRepository } from './refresh-token.repository';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { RolesGuard } from './guards/roles.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -32,6 +34,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     RefreshTokenRepository,
     LocalStrategy,
     JwtStrategy,
+    RolesGuard,
+    PermissionsGuard,
   ],
+  exports: [RolesGuard, PermissionsGuard],
 })
 export class AuthModule {}
