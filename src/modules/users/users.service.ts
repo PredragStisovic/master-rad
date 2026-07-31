@@ -75,4 +75,19 @@ export class UsersService {
 
     return this.usersRepository.delete(id);
   }
+
+  async assignRole(userId: number, roleId: number): Promise<UserEntity> {
+    await this.usersHelper.getExistingUser(userId);
+    await this.usersHelper.assertRoleExists(roleId);
+
+    return this.usersRepository.update(userId, { roleId });
+  }
+
+  async unassignRole(userId: number): Promise<UserEntity> {
+    await this.usersHelper.getExistingUser(userId);
+
+    const roleId = await this.usersHelper.resolveRoleId();
+
+    return this.usersRepository.update(userId, { roleId });
+  }
 }

@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common';
 import {
@@ -82,5 +83,29 @@ export class UsersController {
   @ApiNotFoundResponse({ description: 'User not found' })
   remove(@Param('id', ParseIntPipe) id: number): Promise<UserEntity> {
     return this.usersService.remove(id);
+  }
+
+  @Auth()
+  @RequirePermissions('users:update')
+  @Put(':id/roles/:roleId')
+  @ApiOperation({ summary: 'Assign a role to a user' })
+  @ApiOkResponse({ type: UserEntity })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  @ApiBadRequestResponse({ description: 'Role not found' })
+  assignRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('roleId', ParseIntPipe) roleId: number,
+  ): Promise<UserEntity> {
+    return this.usersService.assignRole(id, roleId);
+  }
+
+  @Auth()
+  @RequirePermissions('users:update')
+  @Delete(':id/roles')
+  @ApiOperation({ summary: 'Unassign role from a user (resets to default)' })
+  @ApiOkResponse({ type: UserEntity })
+  @ApiNotFoundResponse({ description: 'User not found' })
+  unassignRole(@Param('id', ParseIntPipe) id: number): Promise<UserEntity> {
+    return this.usersService.unassignRole(id);
   }
 }
