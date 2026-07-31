@@ -42,6 +42,20 @@ describe('RolesController (e2e)', () => {
     });
     adminRoleId = adminRole.id;
 
+    await prisma.role.update({
+      where: { id: adminRoleId },
+      data: {
+        permissions: {
+          connectOrCreate: [
+            'roles:create',
+            'roles:read',
+            'roles:update',
+            'roles:delete',
+          ].map((name) => ({ where: { name }, create: { name } })),
+        },
+      },
+    });
+
     await prisma.user.deleteMany({ where: { email: adminEmail } });
     await request(app.getHttpServer())
       .post('/users')

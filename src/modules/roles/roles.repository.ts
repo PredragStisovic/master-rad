@@ -65,4 +65,12 @@ export class RolesRepository {
   countUsers(roleId: number): Promise<number> {
     return this.prisma.user.count({ where: { roleId } });
   }
+
+  async findPermissionNamesByRoleId(roleId: number): Promise<string[]> {
+    const role = await this.prisma.role.findUnique({
+      where: { id: roleId },
+      select: { permissions: { select: { name: true } } },
+    });
+    return role?.permissions.map((p) => p.name) ?? [];
+  }
 }

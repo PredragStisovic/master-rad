@@ -47,6 +47,17 @@ describe('UsersController (e2e)', () => {
     });
     roleId = role.id;
 
+    await prisma.role.update({
+      where: { id: roleId },
+      data: {
+        permissions: {
+          connectOrCreate: ['users:read', 'users:update', 'users:delete'].map(
+            (name) => ({ where: { name }, create: { name } }),
+          ),
+        },
+      },
+    });
+
     await prisma.user.deleteMany({ where: { email: adminEmail } });
     await request(app.getHttpServer())
       .post('/users')
@@ -142,13 +153,17 @@ describe('UsersController (e2e)', () => {
 
     const response = await request(app.getHttpServer())
       .get(`/users/${created.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(unwrap<UserEntity>(response).email).toBe(payload.email);
   });
 
   it('GET /users/:id returns 404 for an unknown user', () => {
-    return request(app.getHttpServer()).get('/users/0').expect(404);
+    return request(app.getHttpServer())
+      .get('/users/0')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404);
   });
 
   it('PATCH /users/:id updates the user', async () => {
@@ -171,6 +186,9 @@ describe('UsersController (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    return request(app.getHttpServer()).get(`/users/${created.id}`).expect(404);
+    return request(app.getHttpServer())
+      .get(`/users/${created.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(404);
   });
 });

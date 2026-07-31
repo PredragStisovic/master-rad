@@ -7,16 +7,17 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthenticatedUser } from '../interfaces/authenticated-user.interface';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import {
-  DEFAULT_ROLE_PERMISSIONS,
-  PermissionName,
-} from '../../../common/constants/permissions';
+import { PermissionName } from '../../../common/constants/permissions';
+import { RolesRepository } from '../../roles/roles.repository';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly rolesRepository: RolesRepository,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<
       PermissionName[]
     >(PERMISSIONS_KEY, [context.getHandler(), context.getClass()]);
@@ -33,7 +34,10 @@ export class PermissionsGuard implements CanActivate {
     if (!user) {
       throw new ForbiddenException('User not sent with request');
     }
-    const userPermissions = DEFAULT_ROLE_PERMISSIONS[user.role] ?? [];
+
+    const userPermissions = await this.rolesRepository.findPermissionNamesByRoleId(
+      user.roleId,
+    );
     const hasNeededPermissions = requiredPermissions.every((permission) =>
       userPermissions.includes(permission),
     );
