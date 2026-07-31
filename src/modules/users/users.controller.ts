@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -20,12 +19,13 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
+import { Auth } from '../auth/decorators/auth.decorator';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CreateUserDto } from './dto/create-user.dto';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserEntity } from './entities/user.entity';
 import { UsersService } from './users.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('users')
 @Controller('users')
@@ -41,7 +41,8 @@ export class UsersController {
     return this.usersService.create(createUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth()
+  @RequirePermissions('users:read')
   @Get()
   @ApiOperation({ summary: 'List users (paginated)' })
   @ApiOkResponse({ type: [UserEntity] })
@@ -49,6 +50,8 @@ export class UsersController {
     return this.usersService.findAll(query);
   }
 
+  @Auth()
+  @RequirePermissions('users:read')
   @Get(':id')
   @ApiOperation({ summary: 'Get a user by id' })
   @ApiOkResponse({ type: UserEntity })
@@ -57,7 +60,8 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth()
+  @RequirePermissions('users:update')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a user' })
   @ApiOkResponse({ type: UserEntity })
@@ -70,7 +74,8 @@ export class UsersController {
     return this.usersService.update(id, updateUserDto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth()
+  @RequirePermissions('users:delete')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a user' })
   @ApiOkResponse({ type: UserEntity })
