@@ -47,7 +47,9 @@ const createContext = (user?: AuthenticatedUser) => {
 describe('PermissionsGuard', () => {
   let guard: PermissionsGuard;
   let reflector: Reflector;
-  let rolesRepository: jest.Mocked<Pick<RolesRepository, 'findPermissionNamesByRoleId'>>;
+  let rolesRepository: jest.Mocked<
+    Pick<RolesRepository, 'findPermissionNamesByRoleId'>
+  >;
 
   const requirePermissions = (permissions: PermissionName[] | undefined) =>
     jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(permissions);
@@ -62,7 +64,10 @@ describe('PermissionsGuard', () => {
     rolesRepository = {
       findPermissionNamesByRoleId: jest.fn(),
     };
-    guard = new PermissionsGuard(reflector, rolesRepository as unknown as RolesRepository);
+    guard = new PermissionsGuard(
+      reflector,
+      rolesRepository as unknown as RolesRepository,
+    );
   });
 
   it('lets an unannotated route through', async () => {

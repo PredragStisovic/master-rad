@@ -61,7 +61,13 @@ describe('UsersController (e2e)', () => {
     await prisma.user.deleteMany({ where: { email: adminEmail } });
     await request(app.getHttpServer())
       .post('/users')
-      .send({ email: adminEmail, password: adminPassword, firstName: 'Admin', lastName: 'E2e', roleId })
+      .send({
+        email: adminEmail,
+        password: adminPassword,
+        firstName: 'Admin',
+        lastName: 'E2e',
+        roleId,
+      })
       .expect(201);
 
     const loginResponse = await request(app.getHttpServer())

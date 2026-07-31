@@ -13,14 +13,17 @@ export interface ApiResponse<T> {
 }
 
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, ApiResponse<T>>
-{
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  ApiResponse<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
   ): Observable<ApiResponse<T>> {
-    const statusCode = context.switchToHttp().getResponse<{ statusCode: number }>().statusCode;
+    const statusCode = context
+      .switchToHttp()
+      .getResponse<{ statusCode: number }>().statusCode;
 
     return next.handle().pipe(
       map((data) => ({

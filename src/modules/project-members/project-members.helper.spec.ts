@@ -49,7 +49,9 @@ describe('ProjectMembersHelper', () => {
     it('throws when the project is missing', async () => {
       repository.projectExists.mockResolvedValue(false);
 
-      await expect(helper.assertProjectExists(99)).rejects.toThrow(NotFoundException);
+      await expect(helper.assertProjectExists(99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -61,19 +63,25 @@ describe('ProjectMembersHelper', () => {
     it('throws when the user is missing', async () => {
       repository.userExists.mockResolvedValue(false);
 
-      await expect(helper.assertUserExists(99)).rejects.toThrow(BadRequestException);
+      await expect(helper.assertUserExists(99)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
   describe('assertNotAlreadyMember', () => {
     it('passes when the user is not yet a member', async () => {
-      await expect(helper.assertNotAlreadyMember(1, 2)).resolves.toBeUndefined();
+      await expect(
+        helper.assertNotAlreadyMember(1, 2),
+      ).resolves.toBeUndefined();
     });
 
     it('throws when the user is already a member', async () => {
       repository.findByProjectAndUser.mockResolvedValue(member);
 
-      await expect(helper.assertNotAlreadyMember(1, 2)).rejects.toThrow(ConflictException);
+      await expect(helper.assertNotAlreadyMember(1, 2)).rejects.toThrow(
+        ConflictException,
+      );
     });
   });
 
@@ -85,7 +93,9 @@ describe('ProjectMembersHelper', () => {
     });
 
     it('throws when the member does not exist', async () => {
-      await expect(helper.getExistingMember(1, 99)).rejects.toThrow(NotFoundException);
+      await expect(helper.getExistingMember(1, 99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

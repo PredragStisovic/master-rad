@@ -9,6 +9,7 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { ProjectAccessGuard } from './guards/project-access.guard';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -36,7 +37,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     JwtStrategy,
     RolesGuard,
     PermissionsGuard,
+    ProjectAccessGuard,
   ],
-  exports: [RolesGuard, PermissionsGuard],
+  exports: [RolesGuard, PermissionsGuard, ProjectAccessGuard],
 })
 export class AuthModule {}

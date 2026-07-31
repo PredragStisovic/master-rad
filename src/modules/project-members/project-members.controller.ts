@@ -22,6 +22,7 @@ import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { ProjectMemberEntity } from './entities/project-member.entity';
 import { ProjectMembersService } from './project-members.service';
+import { ProjectRelation } from '../auth/decorators/project-relation.decorator';
 
 @ApiTags('project-members')
 @Auth()
@@ -29,6 +30,7 @@ import { ProjectMembersService } from './project-members.service';
 export class ProjectMembersController {
   constructor(private readonly membersService: ProjectMembersService) {}
 
+  @ProjectRelation('owner')
   @RequirePermissions('projects:update')
   @Post()
   @ApiOperation({ summary: 'Add a member to a project' })
@@ -67,6 +69,7 @@ export class ProjectMembersController {
   }
 
   @RequirePermissions('projects:update')
+  @ProjectRelation('owner')
   @Delete(':userId')
   @ApiOperation({ summary: 'Remove a member from a project' })
   @ApiOkResponse({ type: ProjectMemberEntity })

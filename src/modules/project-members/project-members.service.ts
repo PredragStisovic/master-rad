@@ -12,7 +12,10 @@ export class ProjectMembersService {
     private readonly membersHelper: ProjectMembersHelper,
   ) {}
 
-  async add(projectId: number, dto: AddMemberDto): Promise<ProjectMemberEntity> {
+  async add(
+    projectId: number,
+    dto: AddMemberDto,
+  ): Promise<ProjectMemberEntity> {
     await this.membersHelper.assertProjectExists(projectId);
     await this.membersHelper.assertUserExists(dto.userId);
     await this.membersHelper.assertNotAlreadyMember(projectId, dto.userId);
@@ -30,13 +33,20 @@ export class ProjectMembersService {
     return this.membersRepository.findMany(projectId);
   }
 
-  async update(projectId: number, userId: number, dto: UpdateMemberDto): Promise<ProjectMemberEntity> {
+  async update(
+    projectId: number,
+    userId: number,
+    dto: UpdateMemberDto,
+  ): Promise<ProjectMemberEntity> {
     await this.membersHelper.getExistingMember(projectId, userId);
 
     return this.membersRepository.update(projectId, userId, { role: dto.role });
   }
 
-  async remove(projectId: number, userId: number): Promise<ProjectMemberEntity> {
+  async remove(
+    projectId: number,
+    userId: number,
+  ): Promise<ProjectMemberEntity> {
     await this.membersHelper.getExistingMember(projectId, userId);
 
     return this.membersRepository.delete(projectId, userId);

@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ProjectsController } from './projects.controller';
 import { ProjectsHelper } from './projects.helper';
 import { ProjectsRepository } from './projects.repository';
 import { ProjectsService } from './projects.service';
 
+@Global()
 @Module({
   controllers: [ProjectsController],
   providers: [ProjectsService, ProjectsHelper, ProjectsRepository],

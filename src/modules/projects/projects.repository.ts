@@ -34,19 +34,36 @@ export class ProjectsRepository {
     });
   }
 
+  findOneWithRelations(
+    where: Prisma.ProjectWhereInput,
+    include: Prisma.ProjectInclude,
+  ): Promise<ProjectEntity | null> {
+    return this.prisma.project.findFirst({
+      where,
+      include,
+    });
+  }
+
   count(where: Prisma.ProjectWhereInput): Promise<number> {
     return this.prisma.project.count({ where });
   }
 
   findById(id: number): Promise<ProjectEntity | null> {
-    return this.prisma.project.findUnique({ where: { id }, select: projectSelect });
+    return this.prisma.project.findUnique({
+      where: { id },
+      select: projectSelect,
+    });
   }
 
   update(
     id: number,
     data: Prisma.ProjectUncheckedUpdateInput,
   ): Promise<ProjectEntity> {
-    return this.prisma.project.update({ where: { id }, data, select: projectSelect });
+    return this.prisma.project.update({
+      where: { id },
+      data,
+      select: projectSelect,
+    });
   }
 
   delete(id: number): Promise<ProjectEntity> {

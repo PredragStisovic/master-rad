@@ -35,9 +35,8 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('User not sent with request');
     }
 
-    const userPermissions = await this.rolesRepository.findPermissionNamesByRoleId(
-      user.roleId,
-    );
+    const userPermissions =
+      await this.rolesRepository.findPermissionNamesByRoleId(user.roleId);
     const hasNeededPermissions = requiredPermissions.every((permission) =>
       userPermissions.includes(permission),
     );

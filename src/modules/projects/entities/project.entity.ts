@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ProjectMemberEntity } from 'src/modules/project-members/entities/project-member.entity';
 
 export class ProjectEntity {
   @ApiProperty({ example: 1 })
@@ -18,4 +19,7 @@ export class ProjectEntity {
 
   @ApiProperty()
   updatedAt: Date;
+
+  @ApiProperty()
+  members?: ProjectMemberEntity[];
 }

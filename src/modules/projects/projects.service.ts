@@ -18,7 +18,9 @@ export class ProjectsService {
     return this.projectsRepository.create({ ...dto, ownerId });
   }
 
-  async findAll(query: QueryProjectsDto): Promise<PaginatedResult<ProjectEntity>> {
+  async findAll(
+    query: QueryProjectsDto,
+  ): Promise<PaginatedResult<ProjectEntity>> {
     const where = this.projectsHelper.buildWhere(query);
 
     const [data, total] = await Promise.all([

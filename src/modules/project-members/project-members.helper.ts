@@ -23,8 +23,14 @@ export class ProjectMembersHelper {
     }
   }
 
-  async assertNotAlreadyMember(projectId: number, userId: number): Promise<void> {
-    const existing = await this.membersRepository.findByProjectAndUser(projectId, userId);
+  async assertNotAlreadyMember(
+    projectId: number,
+    userId: number,
+  ): Promise<void> {
+    const existing = await this.membersRepository.findByProjectAndUser(
+      projectId,
+      userId,
+    );
 
     if (existing) {
       throw new ConflictException(
@@ -33,8 +39,14 @@ export class ProjectMembersHelper {
     }
   }
 
-  async getExistingMember(projectId: number, userId: number): Promise<ProjectMemberEntity> {
-    const member = await this.membersRepository.findByProjectAndUser(projectId, userId);
+  async getExistingMember(
+    projectId: number,
+    userId: number,
+  ): Promise<ProjectMemberEntity> {
+    const member = await this.membersRepository.findByProjectAndUser(
+      projectId,
+      userId,
+    );
 
     if (!member) {
       throw new NotFoundException(
