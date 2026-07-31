@@ -8,6 +8,10 @@ export const PERMISSIONS = [
   'roles:update',
   'roles:delete',
   'permissions:read',
+  'projects:read',
+  'projects:create',
+  'projects:update',
+  'projects:delete',
 ] as const;
 
 export type PermissionName = (typeof PERMISSIONS)[number];
@@ -17,5 +21,5 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
   readonly PermissionName[]
 > = {
   admin: PERMISSIONS,
-  user: ['users:read', 'roles:read'],
+  user: ['users:read', 'roles:read', 'projects:read', 'projects:create', 'projects:update', 'projects:delete'],
 };

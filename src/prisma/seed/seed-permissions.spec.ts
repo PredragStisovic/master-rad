@@ -115,13 +115,13 @@ describe('seedPermissions', () => {
       );
     });
 
-    it('grants the user role read-only access', () => {
+    it('grants the user role its default permissions', () => {
       expect(roleUpsertCall(mock.tx, 'user')).toEqual(
         expect.objectContaining({
           create: {
             name: 'user',
             permissions: {
-              connect: [{ name: 'users:read' }, { name: 'roles:read' }],
+              connect: DEFAULT_ROLE_PERMISSIONS.user.map((name) => ({ name })),
             },
           },
         }),
