@@ -192,4 +192,47 @@ describe('UsersService', () => {
       expect(repository.delete).not.toHaveBeenCalled();
     });
   });
+
+  describe('assignRole', () => {
+    it('assigns the role to an existing user', async () => {
+      await expect(service.assignRole(1, 2)).resolves.toEqual(user);
+
+      expect(helper.getExistingUser).toHaveBeenCalledWith(1);
+      expect(helper.assertRoleExists).toHaveBeenCalledWith(2);
+      expect(repository.update).toHaveBeenCalledWith(1, { roleId: 2 });
+    });
+
+    it('does not update when the user is missing', async () => {
+      helper.getExistingUser.mockRejectedValue(new NotFoundException());
+
+      await expect(service.assignRole(99, 2)).rejects.toThrow(NotFoundException);
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('does not update when the role is missing', async () => {
+      helper.assertRoleExists.mockRejectedValue(new Error('bad role'));
+
+      await expect(service.assignRole(1, 99)).rejects.toThrow('bad role');
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unassignRole', () => {
+    it('resets the user to the default role', async () => {
+      helper.resolveRoleId.mockResolvedValue(3);
+
+      await expect(service.unassignRole(1)).resolves.toEqual(user);
+
+      expect(helper.getExistingUser).toHaveBeenCalledWith(1);
+      expect(helper.resolveRoleId).toHaveBeenCalledWith();
+      expect(repository.update).toHaveBeenCalledWith(1, { roleId: 3 });
+    });
+
+    it('does not update when the user is missing', async () => {
+      helper.getExistingUser.mockRejectedValue(new NotFoundException());
+
+      await expect(service.unassignRole(99)).rejects.toThrow(NotFoundException);
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+  });
 });

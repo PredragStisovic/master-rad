@@ -135,7 +135,14 @@ Additional things not listed originally in backlog. It includes bugfixes or glos
 | 61  | ci/track-prisma-config                       | Un-ignore `prisma.config.ts` so CI has a datasource                           | L    | ○   | S    | 55    | C   |
 | 62  | bugfix/jwt-strategy-wiring                   | Register JwtStrategy in AuthModule + add JWT_SECRET to CI env                 | L    | ○   | S    | 12,55 | C   |
 | 63  | feature/adding-auth-guards-and-authorization | `@Auth()` composed decorator + `@RequirePermissions` wired to all controllers | L    | ◐   | S    | 19    | C   |
-|     |                                              |                                                                               |      | ○   |      |       | U   |
+| 64  | fix/logic-for-permission-guard-and-e2e-tests | Make the permission guard fetch the permissions from db, also fix for e2e     | M    | ◐   | M    |       | U   |
+|     |                                              |                                                                               |      |     |      |       | U   |
+|     |                                              |                                                                               |      |     |      |       | U   |
+|     |                                              |                                                                               |      |     |      |       | U   |
+|     |                                              |                                                                               |      |     |      |       | C   |
+|     |                                              |                                                                               |      |     |      |       | C   |
+|     |                                              |                                                                               |      |     |      |       | C   |
+|     |                                              |                                                                               |      |     |      |       | U   |
 
 ## Dependency structure
 
