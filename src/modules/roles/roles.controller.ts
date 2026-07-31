@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -20,7 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Auth } from '../auth/decorators/auth.decorator';
+import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { QueryRolesDto } from './dto/query-roles.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -28,11 +28,12 @@ import { RoleEntity } from './entities/role.entity';
 import { RolesService } from './roles.service';
 
 @ApiTags('roles')
-@UseGuards(JwtAuthGuard)
+@Auth()
 @Controller('roles')
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
+  @RequirePermissions('roles:create')
   @Post()
   @ApiOperation({ summary: 'Create a role' })
   @ApiCreatedResponse({ type: RoleEntity })
@@ -42,6 +43,7 @@ export class RolesController {
     return this.rolesService.create(createRoleDto);
   }
 
+  @RequirePermissions('roles:read')
   @Get()
   @ApiOperation({ summary: 'List roles (paginated)' })
   @ApiOkResponse({ type: [RoleEntity] })
@@ -49,6 +51,7 @@ export class RolesController {
     return this.rolesService.findAll(query);
   }
 
+  @RequirePermissions('roles:read')
   @Get(':id')
   @ApiOperation({ summary: 'Get a role by id' })
   @ApiOkResponse({ type: RoleEntity })
@@ -57,6 +60,7 @@ export class RolesController {
     return this.rolesService.findOne(id);
   }
 
+  @RequirePermissions('roles:update')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a role' })
   @ApiOkResponse({ type: RoleEntity })
@@ -69,6 +73,7 @@ export class RolesController {
     return this.rolesService.update(id, updateRoleDto);
   }
 
+  @RequirePermissions('roles:delete')
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a role' })
   @ApiOkResponse({ type: RoleEntity })

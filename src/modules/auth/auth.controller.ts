@@ -9,7 +9,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
@@ -19,9 +18,8 @@ import { AuthService } from './auth.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
 import { LogoutDto } from './dto/logout.dto';
-import { AuthGuard } from '@nestjs/passport';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { Auth } from './decorators/auth.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserEntity } from '../users/entities/user.entity';
 
@@ -40,16 +38,15 @@ export class AuthController {
     return await this.authService.loginUser(req.user);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth()
   @Post('refresh')
   async refreshJwtToken(@Body() body, @Request() req) {
     return await this.authService.refreshJwtToken(body, req.user);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth()
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Log out by revoking a refresh token' })
   @ApiNoContentResponse({ description: 'Refresh token revoked' })
   @ApiUnauthorizedResponse({
@@ -62,12 +59,10 @@ export class AuthController {
     return this.authService.logout(userId, dto);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Auth()
   @Get('me')
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Get the currently authenticated user' })
   @ApiOkResponse({ type: UserEntity })
-  @ApiUnauthorizedResponse({ description: 'Missing or invalid access token' })
   getCurrentUser(@CurrentUser('userId') userId: number): Promise<UserEntity> {
     return this.authService.getCurrentUser(userId);
   }
