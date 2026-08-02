@@ -2,7 +2,12 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { AllExceptionsFilter } from './http-exception.filter';
 
 const mockResponse = () => {
-  const res: { statusCode?: number; body?: unknown; status: jest.Mock; json: jest.Mock } = {
+  const res: {
+    statusCode?: number;
+    body?: unknown;
+    status: jest.Mock;
+    json: jest.Mock;
+  } = {
     status: jest.fn().mockReturnThis(),
     json: jest.fn().mockReturnThis(),
   };

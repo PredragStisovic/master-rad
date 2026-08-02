@@ -4,7 +4,9 @@ import { IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 export class QueryProjectsDto extends PaginationDto {
-  @ApiPropertyOptional({ description: 'Case-insensitive match on name/description' })
+  @ApiPropertyOptional({
+    description: 'Case-insensitive match on name/description',
+  })
   @IsOptional()
   @IsString()
   @MaxLength(100)

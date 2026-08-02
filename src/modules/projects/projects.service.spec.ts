@@ -52,9 +52,14 @@ describe('ProjectsService', () => {
 
   describe('create', () => {
     it('persists the project with the given owner', async () => {
-      await expect(service.create({ name: 'Alpha' }, 1)).resolves.toEqual(project);
+      await expect(service.create({ name: 'Alpha' }, 1)).resolves.toEqual(
+        project,
+      );
 
-      expect(repository.create).toHaveBeenCalledWith({ name: 'Alpha', ownerId: 1 });
+      expect(repository.create).toHaveBeenCalledWith({
+        name: 'Alpha',
+        ownerId: 1,
+      });
     });
   });
 
@@ -96,7 +101,9 @@ describe('ProjectsService', () => {
 
   describe('update', () => {
     it('updates an existing project', async () => {
-      await expect(service.update(1, { name: 'Beta' })).resolves.toEqual(project);
+      await expect(service.update(1, { name: 'Beta' })).resolves.toEqual(
+        project,
+      );
 
       expect(helper.getExistingProject).toHaveBeenCalledWith(1);
       expect(repository.update).toHaveBeenCalledWith(1, { name: 'Beta' });
@@ -105,7 +112,9 @@ describe('ProjectsService', () => {
     it('does not persist when the project is missing', async () => {
       helper.getExistingProject.mockRejectedValue(new NotFoundException());
 
-      await expect(service.update(99, { name: 'Beta' })).rejects.toThrow(NotFoundException);
+      await expect(service.update(99, { name: 'Beta' })).rejects.toThrow(
+        NotFoundException,
+      );
       expect(repository.update).not.toHaveBeenCalled();
     });
   });

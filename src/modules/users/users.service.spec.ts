@@ -205,7 +205,9 @@ describe('UsersService', () => {
     it('does not update when the user is missing', async () => {
       helper.getExistingUser.mockRejectedValue(new NotFoundException());
 
-      await expect(service.assignRole(99, 2)).rejects.toThrow(NotFoundException);
+      await expect(service.assignRole(99, 2)).rejects.toThrow(
+        NotFoundException,
+      );
       expect(repository.update).not.toHaveBeenCalled();
     });
 

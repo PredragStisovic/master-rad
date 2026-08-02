@@ -6,7 +6,11 @@ import { ProjectMembersService } from './project-members.service';
 
 @Module({
   controllers: [ProjectMembersController],
-  providers: [ProjectMembersService, ProjectMembersHelper, ProjectMembersRepository],
+  providers: [
+    ProjectMembersService,
+    ProjectMembersHelper,
+    ProjectMembersRepository,
+  ],
   exports: [ProjectMembersRepository],
 })
 export class ProjectMembersModule {}

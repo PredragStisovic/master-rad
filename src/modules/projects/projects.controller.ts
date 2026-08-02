@@ -25,6 +25,7 @@ import { QueryProjectsDto } from './dto/query-projects.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectEntity } from './entities/project.entity';
 import { ProjectsService } from './projects.service';
+import { ProjectRelation } from '../auth/decorators/project-relation.decorator';
 
 @ApiTags('projects')
 @Auth()
@@ -47,7 +48,9 @@ export class ProjectsController {
   @Get()
   @ApiOperation({ summary: 'List projects (paginated)' })
   @ApiOkResponse({ type: [ProjectEntity] })
-  findAll(@Query() query: QueryProjectsDto): Promise<PaginatedResult<ProjectEntity>> {
+  findAll(
+    @Query() query: QueryProjectsDto,
+  ): Promise<PaginatedResult<ProjectEntity>> {
     return this.projectsService.findAll(query);
   }
 
@@ -60,6 +63,7 @@ export class ProjectsController {
     return this.projectsService.findOne(id);
   }
 
+  @ProjectRelation('owner')
   @RequirePermissions('projects:update')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a project' })

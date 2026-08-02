@@ -61,27 +61,37 @@ describe('ProjectMembersService', () => {
       expect(helper.assertProjectExists).toHaveBeenCalledWith(1);
       expect(helper.assertUserExists).toHaveBeenCalledWith(2);
       expect(helper.assertNotAlreadyMember).toHaveBeenCalledWith(1, 2);
-      expect(repository.create).toHaveBeenCalledWith({ projectId: 1, userId: 2, role: undefined });
+      expect(repository.create).toHaveBeenCalledWith({
+        projectId: 1,
+        userId: 2,
+        role: undefined,
+      });
     });
 
     it('does not persist when the project is missing', async () => {
       helper.assertProjectExists.mockRejectedValue(new NotFoundException());
 
-      await expect(service.add(99, { userId: 2 })).rejects.toThrow(NotFoundException);
+      await expect(service.add(99, { userId: 2 })).rejects.toThrow(
+        NotFoundException,
+      );
       expect(repository.create).not.toHaveBeenCalled();
     });
 
     it('does not persist when the user is missing', async () => {
       helper.assertUserExists.mockRejectedValue(new BadRequestException());
 
-      await expect(service.add(1, { userId: 99 })).rejects.toThrow(BadRequestException);
+      await expect(service.add(1, { userId: 99 })).rejects.toThrow(
+        BadRequestException,
+      );
       expect(repository.create).not.toHaveBeenCalled();
     });
 
     it('does not persist when already a member', async () => {
       helper.assertNotAlreadyMember.mockRejectedValue(new ConflictException());
 
-      await expect(service.add(1, { userId: 2 })).rejects.toThrow(ConflictException);
+      await expect(service.add(1, { userId: 2 })).rejects.toThrow(
+        ConflictException,
+      );
       expect(repository.create).not.toHaveBeenCalled();
     });
   });
@@ -109,7 +119,9 @@ describe('ProjectMembersService', () => {
       ).resolves.toEqual(member);
 
       expect(helper.getExistingMember).toHaveBeenCalledWith(1, 2);
-      expect(repository.update).toHaveBeenCalledWith(1, 2, { role: ProjectRole.OWNER });
+      expect(repository.update).toHaveBeenCalledWith(1, 2, {
+        role: ProjectRole.OWNER,
+      });
     });
 
     it('throws when the member does not exist', async () => {

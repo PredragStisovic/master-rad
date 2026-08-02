@@ -21,5 +21,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
   readonly PermissionName[]
 > = {
   admin: PERMISSIONS,
-  user: ['users:read', 'roles:read', 'projects:read', 'projects:create', 'projects:update', 'projects:delete'],
+  user: [
+    'users:read',
+    'roles:read',
+    'projects:read',
+    'projects:create',
+    'projects:update',
+    'projects:delete',
+  ],
 };

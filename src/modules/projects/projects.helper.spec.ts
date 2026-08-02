@@ -73,7 +73,9 @@ describe('ProjectsHelper', () => {
     it('throws when the project is missing', async () => {
       repository.findById.mockResolvedValue(null);
 
-      await expect(helper.getExistingProject(99)).rejects.toThrow(NotFoundException);
+      await expect(helper.getExistingProject(99)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

@@ -15,7 +15,9 @@ const memberSelect = {
 export class ProjectMembersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: Prisma.ProjectMemberUncheckedCreateInput): Promise<ProjectMemberEntity> {
+  create(
+    data: Prisma.ProjectMemberUncheckedCreateInput,
+  ): Promise<ProjectMemberEntity> {
     return this.prisma.projectMember.create({ data, select: memberSelect });
   }
 
@@ -27,14 +29,21 @@ export class ProjectMembersRepository {
     });
   }
 
-  findByProjectAndUser(projectId: number, userId: number): Promise<ProjectMemberEntity | null> {
+  findByProjectAndUser(
+    projectId: number,
+    userId: number,
+  ): Promise<ProjectMemberEntity | null> {
     return this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId } },
       select: memberSelect,
     });
   }
 
-  update(projectId: number, userId: number, data: Prisma.ProjectMemberUncheckedUpdateInput): Promise<ProjectMemberEntity> {
+  update(
+    projectId: number,
+    userId: number,
+    data: Prisma.ProjectMemberUncheckedUpdateInput,
+  ): Promise<ProjectMemberEntity> {
     return this.prisma.projectMember.update({
       where: { projectId_userId: { projectId, userId } },
       data,

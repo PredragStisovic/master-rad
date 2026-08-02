@@ -6,13 +6,13 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, transform: true }),
-  );
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const config = new DocumentBuilder()
     .setTitle('Task Management API')
-    .setDescription('REST API for the master-rad task/project management platform')
+    .setDescription(
+      'REST API for the master-rad task/project management platform',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
