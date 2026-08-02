@@ -223,6 +223,7 @@ Beleži razlike između plana i realizacije. Popunjava se u hodu. Primeri format
 | ---------- | ----------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------- |
 | _(primer)_ | `feature/project-management` (1 PR) | `feature/projects-crud`, `feature/project-members`, `feature/project-search` (3 PR) | PR prevelik, podeljen na manje celine |
 | _(primer)_ | 3 mala PR-a za notifikacije         | 1 PR `feature/notifications`                                                        | Celine imale smisla zajedno           |
+| 2026-08-02 | `feature/coverage-config` (#53, Faza 9) | Realizovan odmah posle Faze 3                                                   | §9 — CI sazreva inkrementalno; coverage gejt mora biti zelen već na high-risk PR-ovima Faza 4–8 (#48, #50), a ne tek posle njih |
 |            |                                     |                                                                                     |                                       |
 
 ### Zbirno odstupanje (popuniti na kraju)
