@@ -27,7 +27,8 @@ When in doubt, make it smaller.
    - DTO validation via `class-validator`
    - Swagger/OpenAPI annotations on new endpoints
    - Unit tests for new services; e2e tests where a route is added
-   - Committed, reversible Prisma migrations (idempotent seeds) for schema PRs
+   - Committed Prisma migrations (idempotent seeds) for schema PRs — written so they *could* be
+     reversed, but never actually reverted or reset (see Verification)
 4. **Verify before handing off** (see below).
 5. **Stop for the user's review before starting the next PR.** Do not chain PRs.
 
@@ -39,7 +40,14 @@ meaningful commits) — it is part of the dataset.
 - `npm run build` and `npm test` must pass.
 - Exercise new routes via e2e (`npm run test:e2e`) or a manual `curl` / Swagger check against
   the docker-compose Postgres.
-- For migration PRs, confirm `prisma migrate` applies **and** reverts cleanly.
+- For migration PRs, confirm the migration applies via `npx prisma migrate dev --name <name>`
+  against the docker-compose Postgres. That is the whole check — **do not verify the revert.**
+- **Never run a destructive Prisma command** (`prisma migrate reset`, `db push --force-reset`,
+  or hand-written `DROP`/`TRUNCATE` against the dev database). The local Postgres holds data
+  worth keeping, and reset replays migrations forward — it does not test reversibility anyway.
+  Reversibility is a review-time judgement about the SQL, not something to execute.
+- The generated client is gitignored, so run `npx prisma generate` after a schema change (or
+  after switching to a branch whose schema differs) before `npm run build`.
 
 ## Architecture & conventions
 
