@@ -62,6 +62,18 @@ meaningful commits) — it is part of the dataset.
   orchestration and nothing more. See `src/modules/users/` for the reference shape.
 - Test each unit against its own collaborators: `<name>.service.spec.ts` mocks the helper and the
   repository; `<name>.helper.spec.ts` mocks the repository and covers the guard/query logic.
+- **Every test body needs at least one Jest `expect()`.** In e2e specs, do not let supertest's
+  chained `.expect(status)` be a test's only assertion — SonarQube (`typescript:S2699`) doesn't
+  recognize it and fails the quality gate. Await the request, then assert on the response:
+
+  ```ts
+  const response = await request(app.getHttpServer()).get('/users/0').set(auth);
+
+  expect(response.status).toBe(404);
+  ```
+
+  Chained `.expect(201)` is fine in `beforeAll` and in helpers (`login()`, `createUser()`), where
+  it reads as a precondition guard rather than the assertion under test.
 - Match the surrounding code's style, naming, and test conventions. Prefer reusing existing
   `common/` utilities (pagination DTO, exception filter, decorators) over new ones.
 

@@ -111,27 +111,30 @@ describe('UsersController (e2e)', () => {
     });
   });
 
-  it('POST /users rejects an invalid payload', () => {
-    return request(app.getHttpServer())
+  it('POST /users rejects an invalid payload', async () => {
+    const response = await request(app.getHttpServer())
       .post('/users')
-      .send({ email: 'not-an-email', password: 'short' })
-      .expect(400);
+      .send({ email: 'not-an-email', password: 'short' });
+
+    expect(response.status).toBe(400);
   });
 
-  it('POST /users rejects an unknown role', () => {
-    return request(app.getHttpServer())
+  it('POST /users rejects an unknown role', async () => {
+    const response = await request(app.getHttpServer())
       .post('/users')
-      .send({ ...payload, roleId: 0 })
-      .expect(400);
+      .send({ ...payload, roleId: 0 });
+
+    expect(response.status).toBe(400);
   });
 
   it('POST /users rejects a duplicate email', async () => {
     await createUser();
 
-    return request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .post('/users')
-      .send({ ...payload, roleId })
-      .expect(409);
+      .send({ ...payload, roleId });
+
+    expect(response.status).toBe(409);
   });
 
   it('GET /users returns a paginated list', async () => {
@@ -165,11 +168,12 @@ describe('UsersController (e2e)', () => {
     expect(unwrap<UserEntity>(response).email).toBe(payload.email);
   });
 
-  it('GET /users/:id returns 404 for an unknown user', () => {
-    return request(app.getHttpServer())
+  it('GET /users/:id returns 404 for an unknown user', async () => {
+    const response = await request(app.getHttpServer())
       .get('/users/0')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(404);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(404);
   });
 
   it('PATCH /users/:id updates the user', async () => {
@@ -187,14 +191,16 @@ describe('UsersController (e2e)', () => {
   it('DELETE /users/:id removes the user', async () => {
     const created = await createUser();
 
-    await request(app.getHttpServer())
+    const deletion = await request(app.getHttpServer())
       .delete(`/users/${created.id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(200);
+      .set('Authorization', `Bearer ${accessToken}`);
 
-    return request(app.getHttpServer())
+    expect(deletion.status).toBe(200);
+
+    const lookup = await request(app.getHttpServer())
       .get(`/users/${created.id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(404);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(lookup.status).toBe(404);
   });
 });

@@ -72,49 +72,55 @@ describe('AuthController /auth/logout (e2e)', () => {
   it('POST /auth/logout revokes the refresh token', async () => {
     const tokens = await login();
 
-    await request(app.getHttpServer())
+    const logout = await request(app.getHttpServer())
       .post('/auth/logout')
       .set('Authorization', `Bearer ${tokens.access_token}`)
-      .send({ refreshToken: tokens.refresh_token })
-      .expect(204);
+      .send({ refreshToken: tokens.refresh_token });
 
-    await request(app.getHttpServer())
+    expect(logout.status).toBe(204);
+
+    const refresh = await request(app.getHttpServer())
       .post('/auth/refresh')
       .set('Authorization', `Bearer ${tokens.access_token}`)
-      .send({ refreshToken: tokens.refresh_token })
-      .expect(404);
+      .send({ refreshToken: tokens.refresh_token });
+
+    expect(refresh.status).toBe(404);
   });
 
   it('POST /auth/logout rejects a refresh token that was already revoked', async () => {
     const tokens = await login();
 
-    await request(app.getHttpServer())
+    const firstLogout = await request(app.getHttpServer())
       .post('/auth/logout')
       .set('Authorization', `Bearer ${tokens.access_token}`)
-      .send({ refreshToken: tokens.refresh_token })
-      .expect(204);
+      .send({ refreshToken: tokens.refresh_token });
 
-    await request(app.getHttpServer())
+    expect(firstLogout.status).toBe(204);
+
+    const secondLogout = await request(app.getHttpServer())
       .post('/auth/logout')
       .set('Authorization', `Bearer ${tokens.access_token}`)
-      .send({ refreshToken: tokens.refresh_token })
-      .expect(401);
+      .send({ refreshToken: tokens.refresh_token });
+
+    expect(secondLogout.status).toBe(401);
   });
 
-  it('POST /auth/logout rejects a request without an access token', () => {
-    return request(app.getHttpServer())
+  it('POST /auth/logout rejects a request without an access token', async () => {
+    const response = await request(app.getHttpServer())
       .post('/auth/logout')
-      .send({ refreshToken: 'whatever' })
-      .expect(401);
+      .send({ refreshToken: 'whatever' });
+
+    expect(response.status).toBe(401);
   });
 
   it('POST /auth/logout validates the body', async () => {
     const tokens = await login();
 
-    await request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .post('/auth/logout')
       .set('Authorization', `Bearer ${tokens.access_token}`)
-      .send({})
-      .expect(400);
+      .send({});
+
+    expect(response.status).toBe(400);
   });
 });

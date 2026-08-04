@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ProjectMembersModule } from './modules/project-members/project-members.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ProjectMembersModule } from './modules/project-members/project-members.
     RolesModule,
     ProjectsModule,
     ProjectMembersModule,
+    TasksModule,
   ],
   controllers: [AppController],
   providers: [AppService],
