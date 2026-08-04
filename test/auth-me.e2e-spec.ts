@@ -79,14 +79,17 @@ describe('AuthController /auth/me (e2e)', () => {
     });
   });
 
-  it('GET /auth/me rejects a request without a token', () => {
-    return request(app.getHttpServer()).get('/auth/me').expect(401);
+  it('GET /auth/me rejects a request without a token', async () => {
+    const response = await request(app.getHttpServer()).get('/auth/me');
+
+    expect(response.status).toBe(401);
   });
 
-  it('GET /auth/me rejects an invalid token', () => {
-    return request(app.getHttpServer())
+  it('GET /auth/me rejects an invalid token', async () => {
+    const response = await request(app.getHttpServer())
       .get('/auth/me')
-      .set('Authorization', 'Bearer not-a-jwt')
-      .expect(401);
+      .set('Authorization', 'Bearer not-a-jwt');
+
+    expect(response.status).toBe(401);
   });
 });

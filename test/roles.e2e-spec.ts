@@ -105,29 +105,32 @@ describe('RolesController (e2e)', () => {
     });
   });
 
-  it('POST /roles rejects an anonymous request', () => {
-    return request(app.getHttpServer())
+  it('POST /roles rejects an anonymous request', async () => {
+    const response = await request(app.getHttpServer())
       .post('/roles')
-      .send(payload)
-      .expect(401);
+      .send(payload);
+
+    expect(response.status).toBe(401);
   });
 
-  it('POST /roles rejects an invalid payload', () => {
-    return request(app.getHttpServer())
+  it('POST /roles rejects an invalid payload', async () => {
+    const response = await request(app.getHttpServer())
       .post('/roles')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ name: '' })
-      .expect(400);
+      .send({ name: '' });
+
+    expect(response.status).toBe(400);
   });
 
   it('POST /roles rejects a duplicate name', async () => {
     await createRole();
 
-    return request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .post('/roles')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(payload)
-      .expect(409);
+      .send(payload);
+
+    expect(response.status).toBe(409);
   });
 
   it('GET /roles returns a paginated list', async () => {
@@ -156,11 +159,12 @@ describe('RolesController (e2e)', () => {
     expect(unwrap<RoleEntity>(response).name).toBe(payload.name);
   });
 
-  it('GET /roles/:id returns 404 for an unknown role', () => {
-    return request(app.getHttpServer())
+  it('GET /roles/:id returns 404 for an unknown role', async () => {
+    const response = await request(app.getHttpServer())
       .get('/roles/0')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(404);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(404);
   });
 
   it('PATCH /roles/:id updates the role', async () => {
@@ -178,21 +182,24 @@ describe('RolesController (e2e)', () => {
   it('DELETE /roles/:id removes an unassigned role', async () => {
     const created = await createRole();
 
-    await request(app.getHttpServer())
+    const deletion = await request(app.getHttpServer())
       .delete(`/roles/${created.id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(200);
+      .set('Authorization', `Bearer ${accessToken}`);
 
-    return request(app.getHttpServer())
+    expect(deletion.status).toBe(200);
+
+    const lookup = await request(app.getHttpServer())
       .get(`/roles/${created.id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(404);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(lookup.status).toBe(404);
   });
 
-  it('DELETE /roles/:id refuses a role that is still assigned', () => {
-    return request(app.getHttpServer())
+  it('DELETE /roles/:id refuses a role that is still assigned', async () => {
+    const response = await request(app.getHttpServer())
       .delete(`/roles/${adminRoleId}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(409);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(409);
   });
 });

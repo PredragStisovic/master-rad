@@ -127,19 +127,21 @@ describe('TasksController (e2e)', () => {
     });
   });
 
-  it('POST /projects/:projectId/tasks rejects an invalid payload', () => {
-    return request(app.getHttpServer())
+  it('POST /projects/:projectId/tasks rejects an invalid payload', async () => {
+    const response = await request(app.getHttpServer())
       .post(`/projects/${projectId}/tasks`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ title: '', priority: 'URGENT' })
-      .expect(400);
+      .send({ title: '', priority: 'URGENT' });
+
+    expect(response.status).toBe(400);
   });
 
-  it('POST /projects/:projectId/tasks requires authentication', () => {
-    return request(app.getHttpServer())
+  it('POST /projects/:projectId/tasks requires authentication', async () => {
+    const response = await request(app.getHttpServer())
       .post(`/projects/${projectId}/tasks`)
-      .send(payload)
-      .expect(401);
+      .send(payload);
+
+    expect(response.status).toBe(401);
   });
 
   it('GET /projects/:projectId/tasks lists the tasks of the project', async () => {
@@ -167,11 +169,12 @@ describe('TasksController (e2e)', () => {
     expect(unwrap<TaskEntity>(response).id).toBe(created.id);
   });
 
-  it('GET /projects/:projectId/tasks/:id returns 404 for an unknown task', () => {
-    return request(app.getHttpServer())
+  it('GET /projects/:projectId/tasks/:id returns 404 for an unknown task', async () => {
+    const response = await request(app.getHttpServer())
       .get(`/projects/${projectId}/tasks/0`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(404);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(404);
   });
 
   it('PATCH /projects/:projectId/tasks/:id updates the task', async () => {
@@ -192,14 +195,16 @@ describe('TasksController (e2e)', () => {
   it('DELETE /projects/:projectId/tasks/:id removes the task', async () => {
     const created = await createTask();
 
-    await request(app.getHttpServer())
+    const deletion = await request(app.getHttpServer())
       .delete(`/projects/${projectId}/tasks/${created.id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(200);
+      .set('Authorization', `Bearer ${accessToken}`);
 
-    return request(app.getHttpServer())
+    expect(deletion.status).toBe(200);
+
+    const lookup = await request(app.getHttpServer())
       .get(`/projects/${projectId}/tasks/${created.id}`)
-      .set('Authorization', `Bearer ${accessToken}`)
-      .expect(404);
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(lookup.status).toBe(404);
   });
 });
