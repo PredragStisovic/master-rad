@@ -98,7 +98,9 @@
       "!**/dto/**",
       "!**/entities/**",
       "!**/interfaces/**",
-      "!config/**"
+      "!config/**",
+      "modules/tasks/**/*.ts",
+      "!modules/tasks/tasks.module.ts"
     ],
     "coverageDirectory": "../coverage",
     "coverageReporters": [
