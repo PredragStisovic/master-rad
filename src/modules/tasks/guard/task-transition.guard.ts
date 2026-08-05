@@ -31,7 +31,9 @@ export class TaskTransitionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
 
     const body: UpdateTaskDto = request.body;
-    const existingTask = await this.taskRepository.findById(request.params.id);
+    const existingTask = await this.taskRepository.findById(
+      Number(request.params.id),
+    );
 
     if (!body.status || !existingTask?.status) {
       return true;
