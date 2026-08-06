@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
 import { TaskEntity } from './entities/task.entity';
@@ -13,6 +13,7 @@ const task: TaskEntity = {
   status: TaskStatus.TODO,
   priority: TaskPriority.MEDIUM,
   projectId: 1,
+  assigneeId: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -27,6 +28,7 @@ const createRepositoryMock = () => ({
 const createHelperMock = () => ({
   assertProjectExists: jest.fn().mockResolvedValue(undefined),
   getExistingTask: jest.fn().mockResolvedValue(task),
+  assertUserIsProjectMember: jest.fn().mockResolvedValue(undefined),
 });
 
 describe('TasksService', () => {
@@ -121,6 +123,55 @@ describe('TasksService', () => {
       await expect(service.update(1, 99, { title: 'Renamed' })).rejects.toThrow(
         NotFoundException,
       );
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('assign', () => {
+    it('assigns the task to a project member', async () => {
+      await expect(service.assign(1, 1, { assigneeId: 7 })).resolves.toEqual(
+        task,
+      );
+
+      expect(helper.getExistingTask).toHaveBeenCalledWith(1, 1);
+      expect(helper.assertUserIsProjectMember).toHaveBeenCalledWith(1, 7);
+      expect(repository.update).toHaveBeenCalledWith(1, { assigneeId: 7 });
+    });
+
+    it('does not persist when the task is missing', async () => {
+      helper.getExistingTask.mockRejectedValue(new NotFoundException());
+
+      await expect(service.assign(1, 99, { assigneeId: 7 })).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(helper.assertUserIsProjectMember).not.toHaveBeenCalled();
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+
+    it('does not persist when the assignee is not a project member', async () => {
+      helper.assertUserIsProjectMember.mockRejectedValue(
+        new BadRequestException(),
+      );
+
+      await expect(service.assign(1, 1, { assigneeId: 99 })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(repository.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('unassign', () => {
+    it('clears the assignee of an existing task', async () => {
+      await expect(service.unassign(1, 1)).resolves.toEqual(task);
+
+      expect(helper.getExistingTask).toHaveBeenCalledWith(1, 1);
+      expect(repository.update).toHaveBeenCalledWith(1, { assigneeId: null });
+    });
+
+    it('does not persist when the task is missing', async () => {
+      helper.getExistingTask.mockRejectedValue(new NotFoundException());
+
+      await expect(service.unassign(1, 99)).rejects.toThrow(NotFoundException);
       expect(repository.update).not.toHaveBeenCalled();
     });
   });

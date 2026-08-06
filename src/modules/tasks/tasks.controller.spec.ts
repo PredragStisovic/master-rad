@@ -10,6 +10,7 @@ const task: TaskEntity = {
   status: TaskStatus.TODO,
   priority: TaskPriority.MEDIUM,
   projectId: 1,
+  assigneeId: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -19,6 +20,8 @@ const createServiceMock = () => ({
   findAll: jest.fn().mockResolvedValue([task]),
   findOne: jest.fn().mockResolvedValue(task),
   update: jest.fn().mockResolvedValue(task),
+  assign: jest.fn().mockResolvedValue(task),
+  unassign: jest.fn().mockResolvedValue(task),
   remove: jest.fn().mockResolvedValue(task),
 });
 
@@ -62,6 +65,22 @@ describe('TasksController', () => {
 
       await expect(controller.update(1, 1, dto)).resolves.toEqual(task);
       expect(service.update).toHaveBeenCalledWith(1, 1, dto);
+    });
+  });
+
+  describe('assign', () => {
+    it('forwards the assignee to the service', async () => {
+      const dto = { assigneeId: 7 };
+
+      await expect(controller.assign(1, 1, dto)).resolves.toEqual(task);
+      expect(service.assign).toHaveBeenCalledWith(1, 1, dto);
+    });
+  });
+
+  describe('unassign', () => {
+    it('clears the assignee of the task', async () => {
+      await expect(controller.unassign(1, 1)).resolves.toEqual(task);
+      expect(service.unassign).toHaveBeenCalledWith(1, 1);
     });
   });
 

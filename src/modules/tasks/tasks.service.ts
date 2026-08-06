@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { AssignTaskDto } from './dto/assign-task.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskEntity } from './entities/task.entity';
@@ -36,6 +37,23 @@ export class TasksService {
     await this.tasksHelper.getExistingTask(projectId, id);
 
     return this.tasksRepository.update(id, dto);
+  }
+
+  async assign(
+    projectId: number,
+    id: number,
+    dto: AssignTaskDto,
+  ): Promise<TaskEntity> {
+    await this.tasksHelper.getExistingTask(projectId, id);
+    await this.tasksHelper.assertUserIsProjectMember(projectId, dto.assigneeId);
+
+    return this.tasksRepository.update(id, { assigneeId: dto.assigneeId });
+  }
+
+  async unassign(projectId: number, id: number): Promise<TaskEntity> {
+    await this.tasksHelper.getExistingTask(projectId, id);
+
+    return this.tasksRepository.update(id, { assigneeId: null });
   }
 
   async remove(projectId: number, id: number): Promise<TaskEntity> {

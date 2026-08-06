@@ -1,6 +1,12 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
+import {
+  ProjectRole,
+  TaskPriority,
+  TaskStatus,
+} from '../../../generated/prisma/client';
+import { ProjectMemberEntity } from '../project-members/entities/project-member.entity';
+import { ProjectMembersRepository } from '../project-members/project-members.repository';
 import { ProjectEntity } from '../projects/entities/project.entity';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { TaskEntity } from './entities/task.entity';
@@ -23,8 +29,17 @@ const task: TaskEntity = {
   status: TaskStatus.TODO,
   priority: TaskPriority.MEDIUM,
   projectId: 1,
+  assigneeId: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
+};
+
+const member: ProjectMemberEntity = {
+  id: 1,
+  projectId: 1,
+  userId: 7,
+  role: ProjectRole.MEMBER,
+  joinedAt: new Date('2026-01-01'),
 };
 
 const createTasksRepositoryMock = () => ({
@@ -35,26 +50,37 @@ const createProjectsRepositoryMock = () => ({
   findById: jest.fn().mockResolvedValue(project),
 });
 
+const createMembersRepositoryMock = () => ({
+  findByProjectAndUser: jest.fn().mockResolvedValue(member),
+});
+
 describe('TasksHelper', () => {
   let helper: TasksHelper;
   let tasksRepository: ReturnType<typeof createTasksRepositoryMock>;
   let projectsRepository: ReturnType<typeof createProjectsRepositoryMock>;
+  let membersRepository: ReturnType<typeof createMembersRepositoryMock>;
 
   beforeEach(async () => {
     const tasksRepositoryMock = createTasksRepositoryMock();
     const projectsRepositoryMock = createProjectsRepositoryMock();
+    const membersRepositoryMock = createMembersRepositoryMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksHelper,
         { provide: TasksRepository, useValue: tasksRepositoryMock },
         { provide: ProjectsRepository, useValue: projectsRepositoryMock },
+        {
+          provide: ProjectMembersRepository,
+          useValue: membersRepositoryMock,
+        },
       ],
     }).compile();
 
     helper = module.get(TasksHelper);
     tasksRepository = tasksRepositoryMock;
     projectsRepository = projectsRepositoryMock;
+    membersRepository = membersRepositoryMock;
   });
 
   describe('assertProjectExists', () => {
@@ -88,6 +114,23 @@ describe('TasksHelper', () => {
     it('throws when the task belongs to another project', async () => {
       await expect(helper.getExistingTask(2, 1)).rejects.toThrow(
         NotFoundException,
+      );
+    });
+  });
+
+  describe('assertUserIsProjectMember', () => {
+    it('passes when the user is a member of the project', async () => {
+      await expect(
+        helper.assertUserIsProjectMember(1, 7),
+      ).resolves.toBeUndefined();
+      expect(membersRepository.findByProjectAndUser).toHaveBeenCalledWith(1, 7);
+    });
+
+    it('throws when the user is not a member of the project', async () => {
+      membersRepository.findByProjectAndUser.mockResolvedValue(null);
+
+      await expect(helper.assertUserIsProjectMember(1, 99)).rejects.toThrow(
+        BadRequestException,
       );
     });
   });

@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -19,6 +20,7 @@ import {
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ProjectRelation } from '../auth/decorators/project-relation.decorator';
+import { AssignTaskDto } from './dto/assign-task.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskEntity } from './entities/task.entity';
@@ -79,6 +81,32 @@ export class TasksController {
     @Body() dto: UpdateTaskDto,
   ): Promise<TaskEntity> {
     return this.tasksService.update(projectId, id, dto);
+  }
+
+  @RequirePermissions('tasks:update')
+  @Patch(':id/assignee')
+  @ApiOperation({ summary: 'Assign a task to a project member' })
+  @ApiOkResponse({ type: TaskEntity })
+  @ApiBadRequestResponse({ description: 'Assignee is not a project member' })
+  @ApiNotFoundResponse({ description: 'Task not found' })
+  assign(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AssignTaskDto,
+  ): Promise<TaskEntity> {
+    return this.tasksService.assign(projectId, id, dto);
+  }
+
+  @RequirePermissions('tasks:update')
+  @Delete(':id/assignee')
+  @ApiOperation({ summary: 'Clear the assignee of a task' })
+  @ApiOkResponse({ type: TaskEntity })
+  @ApiNotFoundResponse({ description: 'Task not found' })
+  unassign(
+    @Param('projectId', ParseIntPipe) projectId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<TaskEntity> {
+    return this.tasksService.unassign(projectId, id);
   }
 
   @RequirePermissions('tasks:delete')

@@ -20,6 +20,9 @@ export class TaskEntity {
   @ApiProperty({ example: 1 })
   projectId: number;
 
+  @ApiPropertyOptional({ example: 1, nullable: true })
+  assigneeId: number | null;
+
   @ApiProperty()
   createdAt: Date;
 

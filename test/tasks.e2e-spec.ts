@@ -17,9 +17,13 @@ describe('TasksController (e2e)', () => {
   let roleId: number;
   let accessToken: string;
   let projectId: number;
+  let memberId: number;
+  let outsiderId: number;
 
   const adminEmail = 'e2e.tasks.admin@example.com';
   const adminPassword = 'S3cretPassw0rd';
+  const memberEmail = 'e2e.tasks.member@example.com';
+  const outsiderEmail = 'e2e.tasks.outsider@example.com';
 
   const payload = {
     title: 'E2e task',
@@ -61,7 +65,9 @@ describe('TasksController (e2e)', () => {
       },
     });
 
-    await prisma.user.deleteMany({ where: { email: adminEmail } });
+    await prisma.user.deleteMany({
+      where: { email: { in: [adminEmail, memberEmail, outsiderEmail] } },
+    });
     await request(app.getHttpServer())
       .post('/users')
       .send({
@@ -72,6 +78,32 @@ describe('TasksController (e2e)', () => {
         roleId,
       })
       .expect(201);
+
+    const memberResponse = await request(app.getHttpServer())
+      .post('/users')
+      .send({
+        email: memberEmail,
+        password: adminPassword,
+        firstName: 'Member',
+        lastName: 'E2e',
+        roleId,
+      })
+      .expect(201);
+
+    memberId = unwrap<{ id: number }>(memberResponse).id;
+
+    const outsiderResponse = await request(app.getHttpServer())
+      .post('/users')
+      .send({
+        email: outsiderEmail,
+        password: adminPassword,
+        firstName: 'Outsider',
+        lastName: 'E2e',
+        roleId,
+      })
+      .expect(201);
+
+    outsiderId = unwrap<{ id: number }>(outsiderResponse).id;
 
     const loginResponse = await request(app.getHttpServer())
       .post('/auth/login')
@@ -87,6 +119,10 @@ describe('TasksController (e2e)', () => {
       .expect(201);
 
     projectId = unwrap<ProjectEntity>(projectResponse).id;
+
+    await prisma.projectMember.create({
+      data: { projectId, userId: memberId },
+    });
   });
 
   beforeEach(async () => {
@@ -96,7 +132,9 @@ describe('TasksController (e2e)', () => {
   afterAll(async () => {
     await prisma.task.deleteMany({ where: { projectId } });
     await prisma.project.deleteMany({ where: { id: projectId } });
-    await prisma.user.deleteMany({ where: { email: adminEmail } });
+    await prisma.user.deleteMany({
+      where: { email: { in: [adminEmail, memberEmail, outsiderEmail] } },
+    });
     await prisma.role.deleteMany({ where: { id: roleId } });
     await prisma.$disconnect();
     await app.close();
@@ -122,6 +160,7 @@ describe('TasksController (e2e)', () => {
       status: 'TODO',
       priority: 'MEDIUM',
       projectId,
+      assigneeId: null,
       createdAt: expect.any(String) as unknown,
       updatedAt: expect.any(String) as unknown,
     });
@@ -190,6 +229,55 @@ describe('TasksController (e2e)', () => {
 
     expect(updated.status).toBe('IN_PROGRESS');
     expect(updated.priority).toBe('HIGH');
+  });
+
+  it('PATCH /projects/:projectId/tasks/:id/assignee assigns the task to a project member', async () => {
+    const created = await createTask();
+
+    const response = await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${created.id}/assignee`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ assigneeId: memberId })
+      .expect(200);
+
+    expect(unwrap<TaskEntity>(response).assigneeId).toBe(memberId);
+  });
+
+  it('PATCH /projects/:projectId/tasks/:id/assignee rejects a user outside the project', async () => {
+    const created = await createTask();
+
+    const response = await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${created.id}/assignee`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ assigneeId: outsiderId });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('PATCH /projects/:projectId/tasks/:id/assignee returns 404 for an unknown task', async () => {
+    const response = await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/0/assignee`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ assigneeId: memberId });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('DELETE /projects/:projectId/tasks/:id/assignee clears the assignee', async () => {
+    const created = await createTask();
+
+    await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${created.id}/assignee`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ assigneeId: memberId })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .delete(`/projects/${projectId}/tasks/${created.id}/assignee`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(unwrap<TaskEntity>(response).assigneeId).toBeNull();
   });
 
   it('DELETE /projects/:projectId/tasks/:id removes the task', async () => {
