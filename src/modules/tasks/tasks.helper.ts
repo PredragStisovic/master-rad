@@ -3,8 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../../../generated/prisma/client';
 import { ProjectMembersRepository } from '../project-members/project-members.repository';
 import { ProjectsRepository } from '../projects/projects.repository';
+import { QueryTasksDto } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksRepository } from './tasks.repository';
 
@@ -20,6 +22,24 @@ export class TasksHelper {
     if (!(await this.projectsRepository.findById(projectId))) {
       throw new NotFoundException(`Project with id ${projectId} not found`);
     }
+  }
+
+  buildWhere(projectId: number, query: QueryTasksDto): Prisma.TaskWhereInput {
+    const where: Prisma.TaskWhereInput = { projectId };
+
+    if (query.status !== undefined) {
+      where.status = query.status;
+    }
+
+    if (query.priority !== undefined) {
+      where.priority = query.priority;
+    }
+
+    if (query.assigneeId !== undefined) {
+      where.assigneeId = query.assigneeId;
+    }
+
+    return where;
   }
 
   async assertUserIsProjectMember(

@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
+import { QueryTasksDto } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksHelper } from './tasks.helper';
 import { TasksRepository } from './tasks.repository';
@@ -18,15 +19,22 @@ const task: TaskEntity = {
   updatedAt: new Date('2026-01-01'),
 };
 
+const where = { projectId: 1 };
+
+const buildQuery = (overrides: Partial<QueryTasksDto> = {}): QueryTasksDto =>
+  Object.assign(new QueryTasksDto(), overrides);
+
 const createRepositoryMock = () => ({
   create: jest.fn().mockResolvedValue(task),
   findMany: jest.fn().mockResolvedValue([task]),
+  count: jest.fn().mockResolvedValue(1),
   update: jest.fn().mockResolvedValue(task),
   delete: jest.fn().mockResolvedValue(task),
 });
 
 const createHelperMock = () => ({
   assertProjectExists: jest.fn().mockResolvedValue(undefined),
+  buildWhere: jest.fn().mockReturnValue(where),
   getExistingTask: jest.fn().mockResolvedValue(task),
   assertUserIsProjectMember: jest.fn().mockResolvedValue(undefined),
 });
@@ -77,18 +85,50 @@ describe('TasksService', () => {
   });
 
   describe('findAll', () => {
-    it('returns the tasks of the project', async () => {
-      await expect(service.findAll(1)).resolves.toEqual([task]);
+    it('returns the first page of the project tasks with its meta', async () => {
+      await expect(service.findAll(1, buildQuery())).resolves.toEqual({
+        data: [task],
+        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+      });
 
       expect(helper.assertProjectExists).toHaveBeenCalledWith(1);
-      expect(repository.findMany).toHaveBeenCalledWith(1);
+      expect(repository.findMany).toHaveBeenCalledWith(where, 0, 20);
+      expect(repository.count).toHaveBeenCalledWith(where);
+    });
+
+    it('passes the requested page window to the repository', async () => {
+      const query = buildQuery({ page: 3, limit: 10 });
+
+      await expect(service.findAll(1, query)).resolves.toMatchObject({
+        meta: { page: 3, limit: 10 },
+      });
+      expect(repository.findMany).toHaveBeenCalledWith(where, 20, 10);
+    });
+
+    it('rounds the page count up for a partial last page', async () => {
+      repository.count.mockResolvedValue(21);
+
+      await expect(
+        service.findAll(1, buildQuery({ limit: 10 })),
+      ).resolves.toMatchObject({ meta: { total: 21, totalPages: 3 } });
+    });
+
+    it('filters through the where clause built by the helper', async () => {
+      const query = buildQuery({ status: TaskStatus.DONE, assigneeId: 7 });
+
+      await service.findAll(1, query);
+
+      expect(helper.buildWhere).toHaveBeenCalledWith(1, query);
     });
 
     it('does not query when the project is missing', async () => {
       helper.assertProjectExists.mockRejectedValue(new NotFoundException());
 
-      await expect(service.findAll(99)).rejects.toThrow(NotFoundException);
+      await expect(service.findAll(99, buildQuery())).rejects.toThrow(
+        NotFoundException,
+      );
       expect(repository.findMany).not.toHaveBeenCalled();
+      expect(repository.count).not.toHaveBeenCalled();
     });
   });
 

@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { PaginatedResult } from './../src/common/dto/pagination.dto';
 import { ProjectEntity } from './../src/modules/projects/entities/project.entity';
 import { TaskEntity } from './../src/modules/tasks/entities/task.entity';
 import { PrismaService } from './../src/prisma/prisma.service';
@@ -191,10 +192,85 @@ describe('TasksController (e2e)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
-    const tasks = unwrap<TaskEntity[]>(response);
+    const page = unwrap<PaginatedResult<TaskEntity>>(response);
 
-    expect(tasks).toHaveLength(1);
-    expect(tasks[0].title).toBe(payload.title);
+    expect(page.data).toHaveLength(1);
+    expect(page.data[0].title).toBe(payload.title);
+    expect(page.meta).toEqual({
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+  });
+
+  it('GET /projects/:projectId/tasks paginates the list', async () => {
+    await Promise.all([createTask(), createTask(), createTask()]);
+
+    const response = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?page=2&limit=2`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const page = unwrap<PaginatedResult<TaskEntity>>(response);
+
+    expect(page.data).toHaveLength(1);
+    expect(page.meta).toEqual({
+      total: 3,
+      page: 2,
+      limit: 2,
+      totalPages: 2,
+    });
+  });
+
+  it('GET /projects/:projectId/tasks filters by status and priority', async () => {
+    const kept = await createTask();
+    await createTask();
+
+    await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${kept.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ status: 'DONE', priority: 'HIGH' })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?status=DONE&priority=HIGH`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const page = unwrap<PaginatedResult<TaskEntity>>(response);
+
+    expect(page.data.map((task) => task.id)).toEqual([kept.id]);
+    expect(page.meta.total).toBe(1);
+  });
+
+  it('GET /projects/:projectId/tasks filters by assignee', async () => {
+    const assigned = await createTask();
+    await createTask();
+
+    await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${assigned.id}/assignee`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ assigneeId: memberId })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?assigneeId=${memberId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const page = unwrap<PaginatedResult<TaskEntity>>(response);
+
+    expect(page.data.map((task) => task.id)).toEqual([assigned.id]);
+    expect(page.meta.total).toBe(1);
+  });
+
+  it('GET /projects/:projectId/tasks rejects an unknown status filter', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?status=ARCHIVED`)
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(400);
   });
 
   it('GET /projects/:projectId/tasks/:id returns the task', async () => {
