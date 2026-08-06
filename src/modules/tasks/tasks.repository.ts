@@ -25,14 +25,15 @@ export class TasksRepository {
 
   findMany(
     where: Prisma.TaskWhereInput,
+    orderBy: Prisma.TaskOrderByWithRelationInput[],
     skip: number,
     take: number,
   ): Promise<TaskEntity[]> {
     return this.prisma.task.findMany({
       where,
+      orderBy,
       skip,
       take,
-      orderBy: { id: 'asc' },
       select: taskSelect,
     });
   }

@@ -28,9 +28,10 @@ export class TasksService {
     await this.tasksHelper.assertProjectExists(projectId);
 
     const where = this.tasksHelper.buildWhere(projectId, query);
+    const orderBy = this.tasksHelper.buildOrderBy(query);
 
     const [data, total] = await Promise.all([
-      this.tasksRepository.findMany(where, query.skip, query.limit),
+      this.tasksRepository.findMany(where, orderBy, query.skip, query.limit),
       this.tasksRepository.count(where),
     ]);
 

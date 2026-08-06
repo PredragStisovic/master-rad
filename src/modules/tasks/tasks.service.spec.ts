@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
-import { QueryTasksDto } from './dto/query-tasks.dto';
+import { QueryTasksDto, TaskSortBy } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksHelper } from './tasks.helper';
 import { TasksRepository } from './tasks.repository';
@@ -20,6 +20,7 @@ const task: TaskEntity = {
 };
 
 const where = { projectId: 1 };
+const orderBy = [{ id: 'asc' as const }];
 
 const buildQuery = (overrides: Partial<QueryTasksDto> = {}): QueryTasksDto =>
   Object.assign(new QueryTasksDto(), overrides);
@@ -35,6 +36,7 @@ const createRepositoryMock = () => ({
 const createHelperMock = () => ({
   assertProjectExists: jest.fn().mockResolvedValue(undefined),
   buildWhere: jest.fn().mockReturnValue(where),
+  buildOrderBy: jest.fn().mockReturnValue(orderBy),
   getExistingTask: jest.fn().mockResolvedValue(task),
   assertUserIsProjectMember: jest.fn().mockResolvedValue(undefined),
 });
@@ -92,7 +94,7 @@ describe('TasksService', () => {
       });
 
       expect(helper.assertProjectExists).toHaveBeenCalledWith(1);
-      expect(repository.findMany).toHaveBeenCalledWith(where, 0, 20);
+      expect(repository.findMany).toHaveBeenCalledWith(where, orderBy, 0, 20);
       expect(repository.count).toHaveBeenCalledWith(where);
     });
 
@@ -102,7 +104,7 @@ describe('TasksService', () => {
       await expect(service.findAll(1, query)).resolves.toMatchObject({
         meta: { page: 3, limit: 10 },
       });
-      expect(repository.findMany).toHaveBeenCalledWith(where, 20, 10);
+      expect(repository.findMany).toHaveBeenCalledWith(where, orderBy, 20, 10);
     });
 
     it('rounds the page count up for a partial last page', async () => {
@@ -119,6 +121,14 @@ describe('TasksService', () => {
       await service.findAll(1, query);
 
       expect(helper.buildWhere).toHaveBeenCalledWith(1, query);
+    });
+
+    it('orders through the clause built by the helper', async () => {
+      const query = buildQuery({ sortBy: TaskSortBy.TITLE });
+
+      await service.findAll(1, query);
+
+      expect(helper.buildOrderBy).toHaveBeenCalledWith(query);
     });
 
     it('does not query when the project is missing', async () => {

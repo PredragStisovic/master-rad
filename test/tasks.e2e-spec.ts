@@ -141,11 +141,13 @@ describe('TasksController (e2e)', () => {
     await app.close();
   });
 
-  const createTask = async (): Promise<TaskEntity> => {
+  const createTask = async (
+    overrides: Record<string, unknown> = {},
+  ): Promise<TaskEntity> => {
     const response = await request(app.getHttpServer())
       .post(`/projects/${projectId}/tasks`)
       .set('Authorization', `Bearer ${accessToken}`)
-      .send(payload)
+      .send({ ...payload, ...overrides })
       .expect(201);
 
     return unwrap<TaskEntity>(response);
@@ -263,6 +265,58 @@ describe('TasksController (e2e)', () => {
 
     expect(page.data.map((task) => task.id)).toEqual([assigned.id]);
     expect(page.meta.total).toBe(1);
+  });
+
+  it('GET /projects/:projectId/tasks sorts by the requested column and direction', async () => {
+    await createTask({ title: 'Bravo' });
+    await createTask({ title: 'Alpha' });
+    await createTask({ title: 'Charlie' });
+
+    const response = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?sortBy=title&sortOrder=desc`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const page = unwrap<PaginatedResult<TaskEntity>>(response);
+
+    expect(page.data.map((task) => task.title)).toEqual([
+      'Charlie',
+      'Bravo',
+      'Alpha',
+    ]);
+  });
+
+  it('GET /projects/:projectId/tasks keeps the sort stable across pages', async () => {
+    await createTask({ priority: 'HIGH' });
+    await createTask({ priority: 'HIGH' });
+    await createTask({ priority: 'LOW' });
+
+    const query = `sortBy=priority&sortOrder=asc&limit=2`;
+
+    const firstPage = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?${query}&page=1`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const secondPage = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?${query}&page=2`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const ids = [
+      ...unwrap<PaginatedResult<TaskEntity>>(firstPage).data,
+      ...unwrap<PaginatedResult<TaskEntity>>(secondPage).data,
+    ].map((task) => task.id);
+
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it('GET /projects/:projectId/tasks rejects a column outside the sort allow-list', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?sortBy=description`)
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(response.status).toBe(400);
   });
 
   it('GET /projects/:projectId/tasks rejects an unknown status filter', async () => {

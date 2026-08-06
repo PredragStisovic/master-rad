@@ -70,15 +70,18 @@ describe('TasksRepository', () => {
   });
 
   describe('findMany', () => {
-    it('applies the where clause, the page window and orders by id', async () => {
+    it('applies the where clause, the order and the page window', async () => {
       const where = { projectId: 1, status: TaskStatus.TODO };
+      const orderBy = [{ priority: 'desc' as const }, { id: 'asc' as const }];
 
-      await expect(repository.findMany(where, 20, 10)).resolves.toEqual([task]);
+      await expect(
+        repository.findMany(where, orderBy, 20, 10),
+      ).resolves.toEqual([task]);
       expect(prisma.task.findMany).toHaveBeenCalledWith({
         where,
+        orderBy,
         skip: 20,
         take: 10,
-        orderBy: { id: 'asc' },
         select: taskSelect,
       });
     });
