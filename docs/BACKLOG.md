@@ -136,6 +136,7 @@ Additional things not listed originally in backlog. It includes bugfixes or glos
 | 62  | bugfix/jwt-strategy-wiring                   | Register JwtStrategy in AuthModule + add JWT_SECRET to CI env                 | L    | ○   | S    | 12,55 | C   |
 | 63  | feature/adding-auth-guards-and-authorization | `@Auth()` composed decorator + `@RequirePermissions` wired to all controllers | L    | ◐   | S    | 19    | C   |
 | 64  | fix/logic-for-permission-guard-and-e2e-tests | Make the permission guard fetch the permissions from db, also fix for e2e     | M    | ◐   | M    |       | U   |
+| 65  | ci/sonar-coverage-exclusions                 | Align `sonar.coverage.exclusions` with Jest `collectCoverageFrom`             | L    | ○   | S    | 53,56 | C   |
 |     |                                              |                                                                               |      |     |      |       | U   |
 |     |                                              |                                                                               |      |     |      |       | U   |
 |     |                                              |                                                                               |      |     |      |       | U   |

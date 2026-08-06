@@ -11,6 +11,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { ProjectMembersModule } from './modules/project-members/project-members.module';
 import { TasksModule } from './modules/tasks/tasks.module';
+import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
     ProjectsModule,
     ProjectMembersModule,
     TasksModule,
+    TaskCommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
