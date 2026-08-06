@@ -20,7 +20,8 @@ model User {
 
   ownedProjects   Project[]
   projectMembers  ProjectMember[]
-  assignedTasks   Task[]          @relation("TaskAssignee")
+  assignedTasks   Task[]           @relation("TaskAssignee")
+  taskAttachments TaskAttachment[]
 
   @@map("users")
 }
@@ -84,11 +85,30 @@ model Task {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee User?   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  project     Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  attachments TaskAttachment[]
 
   @@index([assigneeId])
   @@map("tasks")
+}
+
+model TaskAttachment {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  mimeType     String   @map("mime_type")
+  size         Int
+  storageKey   String   @unique @map("storage_key")
+  taskId       Int      @map("task_id")
+  uploadedById Int      @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([uploadedById])
+  @@map("task_attachments")
 }
 
 model Role {
