@@ -224,6 +224,7 @@ Beleži razlike između plana i realizacije. Popunjava se u hodu. Primeri format
 | _(primer)_ | `feature/project-management` (1 PR) | `feature/projects-crud`, `feature/project-members`, `feature/project-search` (3 PR) | PR prevelik, podeljen na manje celine |
 | _(primer)_ | 3 mala PR-a za notifikacije         | 1 PR `feature/notifications`                                                        | Celine imale smisla zajedno           |
 | 2026-08-02 | `feature/coverage-config` (#53, Faza 9) | Realizovan odmah posle Faze 3                                                   | §9 — CI sazreva inkrementalno; coverage gejt mora biti zelen već na high-risk PR-ovima Faza 4–8 (#48, #50), a ne tek posle njih |
+| 2026-08-06 | —                                   | `ci/sonar-coverage-exclusions` (#65, neplanirano)                                   | Lista izuzetaka u `sonar-project.properties` nije pratila `collectCoverageFrom` iz `package.json`: kontroleri, repozitorijumi, DTO-ovi i entiteti ne stižu u `lcov.info`, pa ih SonarQube računa kao 0% i obara Coverage on New Code na svakom PR-u koji doda kontroler ili repozitorijum |
 |            |                                     |                                                                                     |                                       |
 
 ### Zbirno odstupanje (popuniti na kraju)
