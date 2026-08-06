@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -27,6 +28,7 @@ import { QueryTasksDto } from './dto/query-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksService } from './tasks.service';
+import { TaskTransitionGuard } from './guard/task-transition.guard';
 
 @ApiTags('tasks')
 @Auth()
@@ -71,6 +73,7 @@ export class TasksController {
     return this.tasksService.findOne(projectId, id);
   }
 
+  @UseGuards(TaskTransitionGuard)
   @RequirePermissions('tasks:update')
   @Patch(':id')
   @ApiOperation({ summary: 'Update a task' })
