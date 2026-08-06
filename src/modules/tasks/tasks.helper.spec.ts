@@ -9,7 +9,7 @@ import { ProjectMemberEntity } from '../project-members/entities/project-member.
 import { ProjectMembersRepository } from '../project-members/project-members.repository';
 import { ProjectEntity } from '../projects/entities/project.entity';
 import { ProjectsRepository } from '../projects/projects.repository';
-import { QueryTasksDto } from './dto/query-tasks.dto';
+import { QueryTasksDto, SortOrder, TaskSortBy } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksHelper } from './tasks.helper';
 import { TasksRepository } from './tasks.repository';
@@ -152,6 +152,45 @@ describe('TasksHelper', () => {
       );
 
       expect(where).toEqual({ projectId: 1, status: TaskStatus.DONE });
+    });
+  });
+
+  describe('buildOrderBy', () => {
+    it('orders by ascending id by default', () => {
+      expect(helper.buildOrderBy(buildQuery())).toEqual([{ id: 'asc' }]);
+    });
+
+    it('honours the requested direction on the default column', () => {
+      expect(
+        helper.buildOrderBy(buildQuery({ sortOrder: SortOrder.DESC })),
+      ).toEqual([{ id: 'desc' }]);
+    });
+
+    it('breaks ties on id when sorting by another column', () => {
+      expect(
+        helper.buildOrderBy(
+          buildQuery({
+            sortBy: TaskSortBy.PRIORITY,
+            sortOrder: SortOrder.DESC,
+          }),
+        ),
+      ).toEqual([{ priority: 'desc' }, { id: 'asc' }]);
+    });
+
+    it('supports every allowed sort column', () => {
+      const columns = Object.values(TaskSortBy).map(
+        (sortBy) =>
+          Object.keys(helper.buildOrderBy(buildQuery({ sortBy }))[0])[0],
+      );
+
+      expect(columns).toEqual([
+        'id',
+        'title',
+        'status',
+        'priority',
+        'createdAt',
+        'updatedAt',
+      ]);
     });
   });
 

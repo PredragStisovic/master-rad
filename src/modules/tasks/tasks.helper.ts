@@ -6,7 +6,7 @@ import {
 import { Prisma } from '../../../generated/prisma/client';
 import { ProjectMembersRepository } from '../project-members/project-members.repository';
 import { ProjectsRepository } from '../projects/projects.repository';
-import { QueryTasksDto } from './dto/query-tasks.dto';
+import { QueryTasksDto, SortOrder, TaskSortBy } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksRepository } from './tasks.repository';
 
@@ -40,6 +40,15 @@ export class TasksHelper {
     }
 
     return where;
+  }
+
+  buildOrderBy(query: QueryTasksDto): Prisma.TaskOrderByWithRelationInput[] {
+    if (query.sortBy === TaskSortBy.ID) {
+      return [{ id: query.sortOrder }];
+    }
+
+    // `id` breaks ties so a page window stays stable across requests.
+    return [{ [query.sortBy]: query.sortOrder }, { id: SortOrder.ASC }];
   }
 
   async assertUserIsProjectMember(

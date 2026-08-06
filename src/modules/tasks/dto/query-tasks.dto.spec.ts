@@ -1,7 +1,7 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { TaskPriority, TaskStatus } from '../../../../generated/prisma/client';
-import { QueryTasksDto } from './query-tasks.dto';
+import { QueryTasksDto, SortOrder, TaskSortBy } from './query-tasks.dto';
 
 const failingProperties = async (
   payload: Record<string, unknown>,
@@ -67,5 +67,35 @@ describe('QueryTasksDto', () => {
 
   it('rejects a limit above the pagination maximum', async () => {
     await expect(failingProperties({ limit: 101 })).resolves.toEqual(['limit']);
+  });
+
+  it('defaults to ascending id when no sort is requested', () => {
+    const dto = plainToInstance(QueryTasksDto, {});
+
+    expect({ sortBy: dto.sortBy, sortOrder: dto.sortOrder }).toEqual({
+      sortBy: TaskSortBy.ID,
+      sortOrder: SortOrder.ASC,
+    });
+  });
+
+  it('accepts an allowed sort column and direction', async () => {
+    await expect(
+      failingProperties({
+        sortBy: TaskSortBy.PRIORITY,
+        sortOrder: SortOrder.DESC,
+      }),
+    ).resolves.toEqual([]);
+  });
+
+  it('rejects a column outside the allow-list', async () => {
+    await expect(failingProperties({ sortBy: 'assigneeId' })).resolves.toEqual([
+      'sortBy',
+    ]);
+  });
+
+  it('rejects an unknown sort direction', async () => {
+    await expect(failingProperties({ sortOrder: 'sideways' })).resolves.toEqual(
+      ['sortOrder'],
+    );
   });
 });
