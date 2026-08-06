@@ -93,6 +93,24 @@ model Task {
   @@map("tasks")
 }
 
+model TaskAttachment {
+  id           Int      @id @default(autoincrement())
+  filename     String
+  mimeType     String   @map("mime_type")
+  size         Int
+  storageKey   String   @unique @map("storage_key")
+  taskId       Int      @map("task_id")
+  uploadedById Int      @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([uploadedById])
+  @@map("task_attachments")
+}
+
 model TaskComment {
   id        Int      @id @default(autoincrement())
   body      String
