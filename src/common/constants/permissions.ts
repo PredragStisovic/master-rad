@@ -16,6 +16,10 @@ export const PERMISSIONS = [
   'tasks:create',
   'tasks:update',
   'tasks:delete',
+  'comments:read',
+  'comments:create',
+  'comments:update',
+  'comments:delete',
 ] as const;
 
 export type PermissionName = (typeof PERMISSIONS)[number];
@@ -36,5 +40,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     'tasks:create',
     'tasks:update',
     'tasks:delete',
+    'comments:read',
+    'comments:create',
+    'comments:update',
+    'comments:delete',
   ],
 };
