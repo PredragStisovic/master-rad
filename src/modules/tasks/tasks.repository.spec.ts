@@ -11,6 +11,7 @@ const task: TaskEntity = {
   status: TaskStatus.TODO,
   priority: TaskPriority.MEDIUM,
   projectId: 1,
+  assigneeId: null,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -22,6 +23,7 @@ const taskSelect = {
   status: true,
   priority: true,
   projectId: true,
+  assigneeId: true,
   createdAt: true,
   updatedAt: true,
 };
@@ -101,6 +103,19 @@ describe('TasksRepository', () => {
       expect(prisma.task.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data,
+        select: taskSelect,
+      });
+    });
+  });
+
+  describe('update', () => {
+    it('clears the assignee when passed null', async () => {
+      await expect(repository.update(1, { assigneeId: null })).resolves.toEqual(
+        task,
+      );
+      expect(prisma.task.update).toHaveBeenCalledWith({
+        where: { id: 1 },
+        data: { assigneeId: null },
         select: taskSelect,
       });
     });

@@ -10,6 +10,7 @@ const taskSelect = {
   status: true,
   priority: true,
   projectId: true,
+  assigneeId: true,
   createdAt: true,
   updatedAt: true,
 } satisfies Prisma.TaskSelect;
