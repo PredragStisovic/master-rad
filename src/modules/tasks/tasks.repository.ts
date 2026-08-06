@@ -23,12 +23,22 @@ export class TasksRepository {
     return this.prisma.task.create({ data, select: taskSelect });
   }
 
-  findMany(projectId: number): Promise<TaskEntity[]> {
+  findMany(
+    where: Prisma.TaskWhereInput,
+    skip: number,
+    take: number,
+  ): Promise<TaskEntity[]> {
     return this.prisma.task.findMany({
-      where: { projectId },
+      where,
+      skip,
+      take,
       orderBy: { id: 'asc' },
       select: taskSelect,
     });
+  }
+
+  count(where: Prisma.TaskWhereInput): Promise<number> {
+    return this.prisma.task.count({ where });
   }
 
   findById(id: number): Promise<TaskEntity | null> {

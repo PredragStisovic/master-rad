@@ -1,4 +1,6 @@
 import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
+import { PaginatedResult } from '../../common/dto/pagination.dto';
+import { QueryTasksDto } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
@@ -15,9 +17,14 @@ const task: TaskEntity = {
   updatedAt: new Date('2026-01-01'),
 };
 
+const page: PaginatedResult<TaskEntity> = {
+  data: [task],
+  meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+};
+
 const createServiceMock = () => ({
   create: jest.fn().mockResolvedValue(task),
-  findAll: jest.fn().mockResolvedValue([task]),
+  findAll: jest.fn().mockResolvedValue(page),
   findOne: jest.fn().mockResolvedValue(task),
   update: jest.fn().mockResolvedValue(task),
   assign: jest.fn().mockResolvedValue(task),
@@ -46,9 +53,13 @@ describe('TasksController', () => {
   });
 
   describe('findAll', () => {
-    it('lists the tasks of the project', async () => {
-      await expect(controller.findAll(1)).resolves.toEqual([task]);
-      expect(service.findAll).toHaveBeenCalledWith(1);
+    it('forwards the query to the service and returns the page', async () => {
+      const query = Object.assign(new QueryTasksDto(), {
+        status: TaskStatus.TODO,
+      });
+
+      await expect(controller.findAll(1, query)).resolves.toEqual(page);
+      expect(service.findAll).toHaveBeenCalledWith(1, query);
     });
   });
 

@@ -9,6 +9,7 @@ import { ProjectMemberEntity } from '../project-members/entities/project-member.
 import { ProjectMembersRepository } from '../project-members/project-members.repository';
 import { ProjectEntity } from '../projects/entities/project.entity';
 import { ProjectsRepository } from '../projects/projects.repository';
+import { QueryTasksDto } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksHelper } from './tasks.helper';
 import { TasksRepository } from './tasks.repository';
@@ -41,6 +42,9 @@ const member: ProjectMemberEntity = {
   role: ProjectRole.MEMBER,
   joinedAt: new Date('2026-01-01'),
 };
+
+const buildQuery = (overrides: Partial<QueryTasksDto> = {}): QueryTasksDto =>
+  Object.assign(new QueryTasksDto(), overrides);
 
 const createTasksRepositoryMock = () => ({
   findById: jest.fn().mockResolvedValue(task),
@@ -115,6 +119,39 @@ describe('TasksHelper', () => {
       await expect(helper.getExistingTask(2, 1)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('buildWhere', () => {
+    it('scopes to the project when no filter is given', () => {
+      expect(helper.buildWhere(1, buildQuery())).toEqual({ projectId: 1 });
+    });
+
+    it('adds each filter that is present', () => {
+      const where = helper.buildWhere(
+        1,
+        buildQuery({
+          status: TaskStatus.IN_REVIEW,
+          priority: TaskPriority.HIGH,
+          assigneeId: 7,
+        }),
+      );
+
+      expect(where).toEqual({
+        projectId: 1,
+        status: TaskStatus.IN_REVIEW,
+        priority: TaskPriority.HIGH,
+        assigneeId: 7,
+      });
+    });
+
+    it('leaves out the filters that are absent', () => {
+      const where = helper.buildWhere(
+        1,
+        buildQuery({ status: TaskStatus.DONE }),
+      );
+
+      expect(where).toEqual({ projectId: 1, status: TaskStatus.DONE });
     });
   });
 

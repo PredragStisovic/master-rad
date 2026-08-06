@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { PaginatedResult } from '../../common/dto/pagination.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { QueryTasksDto } from './dto/query-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksHelper } from './tasks.helper';
@@ -19,10 +21,28 @@ export class TasksService {
     return this.tasksRepository.create({ ...dto, projectId });
   }
 
-  async findAll(projectId: number): Promise<TaskEntity[]> {
+  async findAll(
+    projectId: number,
+    query: QueryTasksDto,
+  ): Promise<PaginatedResult<TaskEntity>> {
     await this.tasksHelper.assertProjectExists(projectId);
 
-    return this.tasksRepository.findMany(projectId);
+    const where = this.tasksHelper.buildWhere(projectId, query);
+
+    const [data, total] = await Promise.all([
+      this.tasksRepository.findMany(where, query.skip, query.limit),
+      this.tasksRepository.count(where),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page: query.page,
+        limit: query.limit,
+        totalPages: Math.ceil(total / query.limit),
+      },
+    };
   }
 
   findOne(projectId: number, id: number): Promise<TaskEntity> {

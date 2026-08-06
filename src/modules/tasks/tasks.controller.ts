@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,8 +21,10 @@ import {
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ProjectRelation } from '../auth/decorators/project-relation.decorator';
+import { PaginatedResult } from '../../common/dto/pagination.dto';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { QueryTasksDto } from './dto/query-tasks.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksService } from './tasks.service';
@@ -48,13 +51,14 @@ export class TasksController {
 
   @RequirePermissions('tasks:read')
   @Get()
-  @ApiOperation({ summary: 'List tasks of a project' })
+  @ApiOperation({ summary: 'List tasks of a project (paginated, filterable)' })
   @ApiOkResponse({ type: [TaskEntity] })
   @ApiNotFoundResponse({ description: 'Project not found' })
   findAll(
     @Param('projectId', ParseIntPipe) projectId: number,
-  ): Promise<TaskEntity[]> {
-    return this.tasksService.findAll(projectId);
+    @Query() query: QueryTasksDto,
+  ): Promise<PaginatedResult<TaskEntity>> {
+    return this.tasksService.findAll(projectId, query);
   }
 
   @RequirePermissions('tasks:read')
