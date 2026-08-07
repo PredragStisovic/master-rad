@@ -12,6 +12,8 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { ProjectMembersModule } from './modules/project-members/project-members.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -28,6 +30,10 @@ import { TaskCommentsModule } from './modules/task-comments/task-comments.module
     ProjectMembersModule,
     TasksModule,
     TaskCommentsModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/static',
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
