@@ -23,6 +23,7 @@ model User {
   assignedTasks   Task[]           @relation("TaskAssignee")
   taskComments    TaskComment[]
   taskAttachments TaskAttachment[]
+  auditLogs       AuditLog[]
 
   @@map("users")
 }
@@ -127,6 +128,28 @@ model TaskComment {
   @@index([taskId])
   @@index([authorId])
   @@map("task_comments")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model AuditLog {
+  id         Int         @id @default(autoincrement())
+  action     AuditAction
+  entityType String      @map("entity_type")
+  entityId   Int?        @map("entity_id")
+  userId     Int?        @map("user_id")
+  metadata   Json?
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
 }
 
 model Role {
