@@ -17,6 +17,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
+import { AuditAction } from '../../../generated/prisma/client';
+import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -34,6 +36,7 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @RequirePermissions('projects:create')
+  @AuditActionType(AuditAction.CREATE)
   @Post()
   @ApiOperation({ summary: 'Create a project' })
   @ApiCreatedResponse({ type: ProjectEntity })
@@ -65,6 +68,7 @@ export class ProjectsController {
 
   @ProjectRelation('owner')
   @RequirePermissions('projects:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a project' })
   @ApiOkResponse({ type: ProjectEntity })
@@ -77,6 +81,7 @@ export class ProjectsController {
   }
 
   @RequirePermissions('projects:delete')
+  @AuditActionType(AuditAction.DELETE)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a project' })
   @ApiOkResponse({ type: ProjectEntity })

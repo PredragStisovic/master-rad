@@ -16,6 +16,8 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { AuditAction } from '../../../generated/prisma/client';
+import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
@@ -33,6 +35,7 @@ export class TaskCommentsController {
   constructor(private readonly commentsService: TaskCommentsService) {}
 
   @RequirePermissions('comments:create')
+  @AuditActionType(AuditAction.CREATE)
   @Post()
   @ApiOperation({ summary: 'Comment on a task' })
   @ApiCreatedResponse({ type: TaskCommentEntity })
@@ -72,6 +75,7 @@ export class TaskCommentsController {
   }
 
   @RequirePermissions('comments:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Patch(':id')
   @ApiOperation({ summary: 'Edit your own comment' })
   @ApiOkResponse({ type: TaskCommentEntity })
@@ -88,6 +92,7 @@ export class TaskCommentsController {
   }
 
   @RequirePermissions('comments:delete')
+  @AuditActionType(AuditAction.DELETE)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete your own comment' })
   @ApiOkResponse({ type: TaskCommentEntity })

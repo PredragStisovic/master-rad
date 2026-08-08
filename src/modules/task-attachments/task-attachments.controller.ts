@@ -18,6 +18,8 @@ import {
   ApiTags,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
+import { AuditAction } from '../../../generated/prisma/client';
+import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
@@ -32,6 +34,7 @@ export class TaskAttachmentsController {
   constructor(private readonly taskAttachmentService: TaskAttachmentsService) {}
 
   @RequirePermissions('tasks:update')
+  @AuditActionType(AuditAction.CREATE)
   @Post()
   @UseInterceptors(AnyFilesInterceptor())
   @ApiConsumes('multipart/form-data')
