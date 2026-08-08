@@ -18,6 +18,8 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { AuditAction } from '../../../generated/prisma/client';
+import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ProjectRelation } from '../auth/decorators/project-relation.decorator';
@@ -38,6 +40,7 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @RequirePermissions('tasks:create')
+  @AuditActionType(AuditAction.CREATE)
   @Post()
   @ApiOperation({ summary: 'Create a task in a project' })
   @ApiCreatedResponse({ type: TaskEntity })
@@ -75,6 +78,7 @@ export class TasksController {
 
   @UseGuards(TaskTransitionGuard)
   @RequirePermissions('tasks:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a task' })
   @ApiOkResponse({ type: TaskEntity })
@@ -88,6 +92,7 @@ export class TasksController {
   }
 
   @RequirePermissions('tasks:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Patch(':id/assignee')
   @ApiOperation({ summary: 'Assign a task to a project member' })
   @ApiOkResponse({ type: TaskEntity })
@@ -102,6 +107,7 @@ export class TasksController {
   }
 
   @RequirePermissions('tasks:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Delete(':id/assignee')
   @ApiOperation({ summary: 'Clear the assignee of a task' })
   @ApiOkResponse({ type: TaskEntity })
@@ -114,6 +120,7 @@ export class TasksController {
   }
 
   @RequirePermissions('tasks:delete')
+  @AuditActionType(AuditAction.DELETE)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a task' })
   @ApiOkResponse({ type: TaskEntity })

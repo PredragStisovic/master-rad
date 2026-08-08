@@ -19,6 +19,8 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { AuditAction } from '../../../generated/prisma/client';
+import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
@@ -33,6 +35,7 @@ import { UsersService } from './users.service';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @AuditActionType(AuditAction.CREATE)
   @Post()
   @ApiOperation({ summary: 'Create a user' })
   @ApiCreatedResponse({ type: UserEntity })
@@ -63,6 +66,7 @@ export class UsersController {
 
   @Auth()
   @RequirePermissions('users:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a user' })
   @ApiOkResponse({ type: UserEntity })
@@ -77,6 +81,7 @@ export class UsersController {
 
   @Auth()
   @RequirePermissions('users:delete')
+  @AuditActionType(AuditAction.DELETE)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a user' })
   @ApiOkResponse({ type: UserEntity })
@@ -87,6 +92,7 @@ export class UsersController {
 
   @Auth()
   @RequirePermissions('users:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Put(':id/roles/:roleId')
   @ApiOperation({ summary: 'Assign a role to a user' })
   @ApiOkResponse({ type: UserEntity })
@@ -101,6 +107,7 @@ export class UsersController {
 
   @Auth()
   @RequirePermissions('users:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Delete(':id/roles')
   @ApiOperation({ summary: 'Unassign role from a user (resets to default)' })
   @ApiOkResponse({ type: UserEntity })

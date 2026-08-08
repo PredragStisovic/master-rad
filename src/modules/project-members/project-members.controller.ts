@@ -16,6 +16,8 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { AuditAction } from '../../../generated/prisma/client';
+import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { AddMemberDto } from './dto/add-member.dto';
@@ -32,6 +34,7 @@ export class ProjectMembersController {
 
   @ProjectRelation('owner')
   @RequirePermissions('projects:update')
+  @AuditActionType(AuditAction.CREATE)
   @Post()
   @ApiOperation({ summary: 'Add a member to a project' })
   @ApiCreatedResponse({ type: ProjectMemberEntity })
@@ -56,6 +59,7 @@ export class ProjectMembersController {
   }
 
   @RequirePermissions('projects:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Patch(':userId')
   @ApiOperation({ summary: 'Update member role' })
   @ApiOkResponse({ type: ProjectMemberEntity })
@@ -70,6 +74,7 @@ export class ProjectMembersController {
 
   @RequirePermissions('projects:update')
   @ProjectRelation('owner')
+  @AuditActionType(AuditAction.DELETE)
   @Delete(':userId')
   @ApiOperation({ summary: 'Remove a member from a project' })
   @ApiOkResponse({ type: ProjectMemberEntity })

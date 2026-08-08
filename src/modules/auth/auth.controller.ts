@@ -14,6 +14,8 @@ import {
   ApiOperation,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { AuditAction } from '../../../generated/prisma/client';
+import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { AuthService } from './auth.service';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { LoginUserDto } from './dto/login-user.dto';
@@ -27,6 +29,7 @@ import { UserEntity } from '../users/entities/user.entity';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @AuditActionType(AuditAction.CREATE)
   @Post('register')
   async registerUser(dto: RegisterUserDto) {
     return await this.authService.registerUser(dto);

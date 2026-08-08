@@ -19,6 +19,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
+import { AuditAction } from '../../../generated/prisma/client';
+import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { CreateRoleDto } from './dto/create-role.dto';
@@ -34,6 +36,7 @@ export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
   @RequirePermissions('roles:create')
+  @AuditActionType(AuditAction.CREATE)
   @Post()
   @ApiOperation({ summary: 'Create a role' })
   @ApiCreatedResponse({ type: RoleEntity })
@@ -61,6 +64,7 @@ export class RolesController {
   }
 
   @RequirePermissions('roles:update')
+  @AuditActionType(AuditAction.UPDATE)
   @Patch(':id')
   @ApiOperation({ summary: 'Update a role' })
   @ApiOkResponse({ type: RoleEntity })
@@ -74,6 +78,7 @@ export class RolesController {
   }
 
   @RequirePermissions('roles:delete')
+  @AuditActionType(AuditAction.DELETE)
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a role' })
   @ApiOkResponse({ type: RoleEntity })
