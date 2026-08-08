@@ -13,6 +13,7 @@ import { ProjectMembersModule } from './modules/project-members/project-members.
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
@@ -32,6 +33,7 @@ import { join } from 'path';
     TasksModule,
     TaskCommentsModule,
     TaskAttachmentsModule,
+    NotificationsModule,
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/static',

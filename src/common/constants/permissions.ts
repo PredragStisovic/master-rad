@@ -20,6 +20,9 @@ export const PERMISSIONS = [
   'comments:create',
   'comments:update',
   'comments:delete',
+  'notifications:read',
+  'notifications:create',
+  'notifications:update',
 ] as const;
 
 export type PermissionName = (typeof PERMISSIONS)[number];
@@ -44,5 +47,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     'comments:create',
     'comments:update',
     'comments:delete',
+    // Reading and dismissing your own; addressing one to somebody else is
+    // an admin act until `feature/notifications-events` emits them itself.
+    'notifications:read',
+    'notifications:update',
   ],
 };
