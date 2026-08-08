@@ -9,6 +9,6 @@ import { UsersService } from './users.service';
   imports: [RolesModule],
   controllers: [UsersController],
   providers: [UsersService, UsersHelper, UsersRepository],
-  exports: [UsersService],
+  exports: [UsersService, UsersRepository],
 })
 export class UsersModule {}
