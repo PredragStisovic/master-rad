@@ -3,5 +3,6 @@ import { LocalStorageService } from './local-storage.service';
 
 @Module({
   providers: [LocalStorageService],
+  exports: [LocalStorageService],
 })
 export class S3Module {}

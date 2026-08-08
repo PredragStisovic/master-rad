@@ -1,4 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -13,7 +14,7 @@ export class LocalStorageService implements OnModuleInit {
   }
 
   async uploadFile(file: Express.Multer.File): Promise<string> {
-    const uniqueKey = `${Date.now()}-${file.originalname}`;
+    const uniqueKey = `${Date.now()}-${randomUUID()}-${file.originalname}`;
     const filePath = path.join(this.uploadDir, uniqueKey);
 
     await fs.promises.writeFile(filePath, file.buffer);

@@ -62,3 +62,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /.claude/
 /.windsurf/
 /skills-lock.json
+
+# Files written by LocalStorageService at runtime
+/uploads/

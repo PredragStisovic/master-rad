@@ -4,5 +4,6 @@ export class TaskAttachmentsEntity {
   @ApiProperty()
   storageKey: string;
 
+  @ApiProperty()
   filename: string;
 }
