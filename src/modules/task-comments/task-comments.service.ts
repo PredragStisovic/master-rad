@@ -4,12 +4,18 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { TaskCommentEntity } from './entities/task-comment.entity';
 import { TaskCommentsHelper } from './task-comments.helper';
 import { TaskCommentsRepository } from './task-comments.repository';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  TASK_COMMENTED_EVENT,
+  TaskCommentedEvent,
+} from '../../common/events/task-commented.event';
 
 @Injectable()
 export class TaskCommentsService {
   constructor(
     private readonly commentsRepository: TaskCommentsRepository,
     private readonly commentsHelper: TaskCommentsHelper,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(
@@ -20,7 +26,18 @@ export class TaskCommentsService {
   ): Promise<TaskCommentEntity> {
     await this.commentsHelper.assertTaskExists(projectId, taskId);
 
-    return this.commentsRepository.create({ ...dto, taskId, authorId });
+    const createdComment = await this.commentsRepository.create({
+      ...dto,
+      taskId,
+      authorId,
+    });
+
+    this.eventEmitter.emit(TASK_COMMENTED_EVENT, {
+      taskId: createdComment.taskId,
+      actorId: createdComment.authorId,
+    } satisfies TaskCommentedEvent);
+
+    return createdComment;
   }
 
   async findAll(

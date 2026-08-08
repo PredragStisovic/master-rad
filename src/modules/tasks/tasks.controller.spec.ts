@@ -80,11 +80,11 @@ describe('TasksController', () => {
   });
 
   describe('assign', () => {
-    it('forwards the assignee to the service', async () => {
+    it('forwards the assignee and the caller to the service', async () => {
       const dto = { assigneeId: 7 };
 
-      await expect(controller.assign(1, 1, dto)).resolves.toEqual(task);
-      expect(service.assign).toHaveBeenCalledWith(1, 1, dto);
+      await expect(controller.assign(1, 1, 3, dto)).resolves.toEqual(task);
+      expect(service.assign).toHaveBeenCalledWith(1, 1, 3, dto);
     });
   });
 
