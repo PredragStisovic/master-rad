@@ -122,6 +122,84 @@ describe('NotificationsHelper', () => {
     });
   });
 
+  describe('buildTaskAssignedNotification', () => {
+    it('addresses the new assignee and names the task', async () => {
+      await expect(
+        helper.buildTaskAssignedNotification({
+          taskId: 5,
+          assigneeId: 7,
+          actorId: 3,
+        }),
+      ).resolves.toEqual({
+        type: NotificationType.TASK_ASSIGNED,
+        message: 'You were assigned to "Write the migration"',
+        userId: 7,
+        taskId: 5,
+      });
+      expect(tasksRepository.findById).toHaveBeenCalledWith(5);
+    });
+
+    it('notifies nobody when a user assigns the task to themselves', async () => {
+      await expect(
+        helper.buildTaskAssignedNotification({
+          taskId: 5,
+          assigneeId: 7,
+          actorId: 7,
+        }),
+      ).resolves.toBeNull();
+      expect(tasksRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it('notifies nobody when the task is gone by the time the event is handled', async () => {
+      tasksRepository.findById.mockResolvedValue(null);
+
+      await expect(
+        helper.buildTaskAssignedNotification({
+          taskId: 404,
+          assigneeId: 7,
+          actorId: 3,
+        }),
+      ).resolves.toBeNull();
+    });
+  });
+
+  describe('buildTaskCommentedNotification', () => {
+    it('addresses the assignee of the commented task', async () => {
+      tasksRepository.findById.mockResolvedValue({ ...task, assigneeId: 7 });
+
+      await expect(
+        helper.buildTaskCommentedNotification({ taskId: 5, actorId: 3 }),
+      ).resolves.toEqual({
+        type: NotificationType.TASK_COMMENTED,
+        message: 'New comment on "Write the migration"',
+        userId: 7,
+        taskId: 5,
+      });
+    });
+
+    it('notifies nobody when the task has no assignee', async () => {
+      await expect(
+        helper.buildTaskCommentedNotification({ taskId: 5, actorId: 3 }),
+      ).resolves.toBeNull();
+    });
+
+    it('notifies nobody when the assignee is the one commenting', async () => {
+      tasksRepository.findById.mockResolvedValue({ ...task, assigneeId: 7 });
+
+      await expect(
+        helper.buildTaskCommentedNotification({ taskId: 5, actorId: 7 }),
+      ).resolves.toBeNull();
+    });
+
+    it('notifies nobody when the task is gone by the time the event is handled', async () => {
+      tasksRepository.findById.mockResolvedValue(null);
+
+      await expect(
+        helper.buildTaskCommentedNotification({ taskId: 404, actorId: 3 }),
+      ).resolves.toBeNull();
+    });
+  });
+
   describe('buildWhere', () => {
     it('scopes to the recipient when nothing is filtered', () => {
       expect(helper.buildWhere(7, query())).toEqual({ userId: 7 });

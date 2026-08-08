@@ -3,9 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '../../../generated/prisma/client';
+import { NotificationType, Prisma } from '../../../generated/prisma/client';
+import { TaskAssignedEvent } from '../../common/events/task-assigned.event';
+import { TaskCommentedEvent } from '../../common/events/task-commented.event';
 import { TasksRepository } from '../tasks/tasks.repository';
 import { UsersRepository } from '../users/users.repository';
+import { CreateNotificationDto } from './dto/create-notification.dto';
 import { QueryNotificationsDto } from './dto/query-notifications.dto';
 import { NotificationEntity } from './entities/notification.entity';
 import { NotificationsRepository } from './notifications.repository';
@@ -28,6 +31,44 @@ export class NotificationsHelper {
     if (!(await this.tasksRepository.findById(taskId))) {
       throw new BadRequestException(`Task with id ${taskId} not found`);
     }
+  }
+
+  async buildTaskAssignedNotification(
+    event: TaskAssignedEvent,
+  ): Promise<CreateNotificationDto | null> {
+    if (event.assigneeId === event.actorId) {
+      return null;
+    }
+
+    const task = await this.tasksRepository.findById(event.taskId);
+
+    if (!task) {
+      return null;
+    }
+
+    return {
+      type: NotificationType.TASK_ASSIGNED,
+      message: `You were assigned to "${task.title}"`,
+      userId: event.assigneeId,
+      taskId: task.id,
+    };
+  }
+
+  async buildTaskCommentedNotification(
+    event: TaskCommentedEvent,
+  ): Promise<CreateNotificationDto | null> {
+    const task = await this.tasksRepository.findById(event.taskId);
+
+    if (!task?.assigneeId || task.assigneeId === event.actorId) {
+      return null;
+    }
+
+    return {
+      type: NotificationType.TASK_COMMENTED,
+      message: `New comment on "${task.title}"`,
+      userId: task.assigneeId,
+      taskId: task.id,
+    };
   }
 
   buildWhere(

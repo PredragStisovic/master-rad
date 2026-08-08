@@ -1,5 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
+import { TASK_COMMENTED_EVENT } from '../../common/events/task-commented.event';
 import { TaskCommentEntity } from './entities/task-comment.entity';
 import { TaskCommentsHelper } from './task-comments.helper';
 import { TaskCommentsRepository } from './task-comments.repository';
@@ -27,26 +29,34 @@ const createHelperMock = () => ({
   assertIsAuthor: jest.fn(),
 });
 
+const createEventEmitterMock = () => ({
+  emit: jest.fn().mockReturnValue(true),
+});
+
 describe('TaskCommentsService', () => {
   let service: TaskCommentsService;
   let repository: ReturnType<typeof createRepositoryMock>;
   let helper: ReturnType<typeof createHelperMock>;
+  let eventEmitter: ReturnType<typeof createEventEmitterMock>;
 
   beforeEach(async () => {
     const repositoryMock = createRepositoryMock();
     const helperMock = createHelperMock();
+    const eventEmitterMock = createEventEmitterMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TaskCommentsService,
         { provide: TaskCommentsRepository, useValue: repositoryMock },
         { provide: TaskCommentsHelper, useValue: helperMock },
+        { provide: EventEmitter2, useValue: eventEmitterMock },
       ],
     }).compile();
 
     service = module.get(TaskCommentsService);
     repository = repositoryMock;
     helper = helperMock;
+    eventEmitter = eventEmitterMock;
   });
 
   describe('create', () => {
@@ -63,6 +73,15 @@ describe('TaskCommentsService', () => {
       });
     });
 
+    it('announces the comment with the author as the actor', async () => {
+      await service.create(1, 5, 7, { body: 'Looks good to me' });
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(TASK_COMMENTED_EVENT, {
+        taskId: 5,
+        actorId: 7,
+      });
+    });
+
     it('does not persist when the task is missing', async () => {
       helper.assertTaskExists.mockRejectedValue(new NotFoundException());
 
@@ -70,6 +89,7 @@ describe('TaskCommentsService', () => {
         service.create(1, 99, 7, { body: 'Orphan' }),
       ).rejects.toThrow(NotFoundException);
       expect(repository.create).not.toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 

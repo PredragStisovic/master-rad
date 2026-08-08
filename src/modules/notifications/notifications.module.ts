@@ -4,6 +4,7 @@ import { TasksModule } from '../tasks/tasks.module';
 import { UsersModule } from '../users/users.module';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsHelper } from './notifications.helper';
+import { NotificationsListener } from './notifications.listener';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationsService } from './notifications.service';
 
@@ -14,6 +15,7 @@ import { NotificationsService } from './notifications.service';
     NotificationsService,
     NotificationsHelper,
     NotificationsRepository,
+    NotificationsListener,
   ],
   exports: [NotificationsService],
 })
