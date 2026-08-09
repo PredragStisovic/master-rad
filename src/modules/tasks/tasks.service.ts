@@ -7,12 +7,18 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksHelper } from './tasks.helper';
 import { TasksRepository } from './tasks.repository';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  TASK_ASSIGNED_EVENT,
+  TaskAssignedEvent,
+} from '../../common/events/task-assigned.event';
 
 @Injectable()
 export class TasksService {
   constructor(
     private readonly tasksRepository: TasksRepository,
     private readonly tasksHelper: TasksHelper,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(projectId: number, dto: CreateTaskDto): Promise<TaskEntity> {
@@ -63,12 +69,23 @@ export class TasksService {
   async assign(
     projectId: number,
     id: number,
+    actorId: number,
     dto: AssignTaskDto,
   ): Promise<TaskEntity> {
     await this.tasksHelper.getExistingTask(projectId, id);
     await this.tasksHelper.assertUserIsProjectMember(projectId, dto.assigneeId);
 
-    return this.tasksRepository.update(id, { assigneeId: dto.assigneeId });
+    const assignedTask = await this.tasksRepository.update(id, {
+      assigneeId: dto.assigneeId,
+    });
+
+    this.eventEmitter.emit(TASK_ASSIGNED_EVENT, {
+      taskId: assignedTask.id,
+      assigneeId: dto.assigneeId,
+      actorId,
+    } satisfies TaskAssignedEvent);
+
+    return assignedTask;
   }
 
   async unassign(projectId: number, id: number): Promise<TaskEntity> {

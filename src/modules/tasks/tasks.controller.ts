@@ -24,6 +24,7 @@ import { Auth } from '../auth/decorators/auth.decorator';
 import { RequirePermissions } from '../auth/decorators/permissions.decorator';
 import { ProjectRelation } from '../auth/decorators/project-relation.decorator';
 import { PaginatedResult } from '../../common/dto/pagination.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AssignTaskDto } from './dto/assign-task.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { QueryTasksDto } from './dto/query-tasks.dto';
@@ -101,9 +102,10 @@ export class TasksController {
   assign(
     @Param('projectId', ParseIntPipe) projectId: number,
     @Param('id', ParseIntPipe) id: number,
+    @CurrentUser('userId') userId: number,
     @Body() dto: AssignTaskDto,
   ): Promise<TaskEntity> {
-    return this.tasksService.assign(projectId, id, dto);
+    return this.tasksService.assign(projectId, id, userId, dto);
   }
 
   @RequirePermissions('tasks:update')

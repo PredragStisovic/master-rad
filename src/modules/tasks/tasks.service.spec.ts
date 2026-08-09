@@ -1,6 +1,8 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
+import { TASK_ASSIGNED_EVENT } from '../../common/events/task-assigned.event';
 import { QueryTasksDto, TaskSortBy } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
 import { TasksHelper } from './tasks.helper';
@@ -41,26 +43,34 @@ const createHelperMock = () => ({
   assertUserIsProjectMember: jest.fn().mockResolvedValue(undefined),
 });
 
+const createEventEmitterMock = () => ({
+  emit: jest.fn().mockReturnValue(true),
+});
+
 describe('TasksService', () => {
   let service: TasksService;
   let repository: ReturnType<typeof createRepositoryMock>;
   let helper: ReturnType<typeof createHelperMock>;
+  let eventEmitter: ReturnType<typeof createEventEmitterMock>;
 
   beforeEach(async () => {
     const repositoryMock = createRepositoryMock();
     const helperMock = createHelperMock();
+    const eventEmitterMock = createEventEmitterMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TasksService,
         { provide: TasksRepository, useValue: repositoryMock },
         { provide: TasksHelper, useValue: helperMock },
+        { provide: EventEmitter2, useValue: eventEmitterMock },
       ],
     }).compile();
 
     service = module.get(TasksService);
     repository = repositoryMock;
     helper = helperMock;
+    eventEmitter = eventEmitterMock;
   });
 
   describe('create', () => {
@@ -179,7 +189,7 @@ describe('TasksService', () => {
 
   describe('assign', () => {
     it('assigns the task to a project member', async () => {
-      await expect(service.assign(1, 1, { assigneeId: 7 })).resolves.toEqual(
+      await expect(service.assign(1, 1, 3, { assigneeId: 7 })).resolves.toEqual(
         task,
       );
 
@@ -188,14 +198,25 @@ describe('TasksService', () => {
       expect(repository.update).toHaveBeenCalledWith(1, { assigneeId: 7 });
     });
 
+    it('announces the assignment with both the assignee and the actor', async () => {
+      await service.assign(1, 1, 3, { assigneeId: 7 });
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(TASK_ASSIGNED_EVENT, {
+        taskId: 1,
+        assigneeId: 7,
+        actorId: 3,
+      });
+    });
+
     it('does not persist when the task is missing', async () => {
       helper.getExistingTask.mockRejectedValue(new NotFoundException());
 
-      await expect(service.assign(1, 99, { assigneeId: 7 })).rejects.toThrow(
+      await expect(service.assign(1, 99, 3, { assigneeId: 7 })).rejects.toThrow(
         NotFoundException,
       );
       expect(helper.assertUserIsProjectMember).not.toHaveBeenCalled();
       expect(repository.update).not.toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('does not persist when the assignee is not a project member', async () => {
@@ -203,10 +224,11 @@ describe('TasksService', () => {
         new BadRequestException(),
       );
 
-      await expect(service.assign(1, 1, { assigneeId: 99 })).rejects.toThrow(
+      await expect(service.assign(1, 1, 3, { assigneeId: 99 })).rejects.toThrow(
         BadRequestException,
       );
       expect(repository.update).not.toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 
