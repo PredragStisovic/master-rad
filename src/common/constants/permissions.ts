@@ -23,6 +23,7 @@ export const PERMISSIONS = [
   'notifications:read',
   'notifications:create',
   'notifications:update',
+  'reports:read',
 ] as const;
 
 export type PermissionName = (typeof PERMISSIONS)[number];
@@ -51,5 +52,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<
     // an admin act until `feature/notifications-events` emits them itself.
     'notifications:read',
     'notifications:update',
+    // `reports:read` is deliberately absent: the user activity report reads
+    // the audit log for any user, across every entity type, so it stays an
+    // admin capability.
   ],
 };
