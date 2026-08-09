@@ -14,6 +14,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { SearchModule } from './modules/search/search.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 
@@ -34,6 +35,7 @@ import { join } from 'path';
     TaskCommentsModule,
     TaskAttachmentsModule,
     NotificationsModule,
+    SearchModule,
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/static',
