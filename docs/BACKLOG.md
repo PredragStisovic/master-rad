@@ -100,7 +100,7 @@ Legend — **Risk** = expected _merge_ risk (the thesis label): **L** / **M** / 
 
 | #   | Branch                           | Goal                                           | Risk  | Cx  | Size | Deps  | Own |
 | --- | -------------------------------- | ---------------------------------------------- | ----- | --- | ---- | ----- | --- |
-| 44  | refactor/task-service            | Split task service into use-case services      | M     | ●   | M    | 27–31 | U   |
+| 44  | refactor/task-scope-guards       | Deduplicate project/task scope guard clauses   | M     | ◐   | M    | 24,27,43 | U   |
 | 45  | performance/search-index         | GIN/tsvector full-text index + migration       | M→H   | ●   | M    | 41    | U   |
 | 46  | performance/caching              | cache-manager/Redis on reports+search          | M     | ◐   | M    | 41,42 | C   |
 | 47  | performance/query-optimization   | Kill N+1, narrow selects on task list          | M     | ◐   | M    | 30    | U   |

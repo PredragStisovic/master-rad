@@ -3,8 +3,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
 import { TASK_ASSIGNED_EVENT } from '../../common/events/task-assigned.event';
+import { ProjectEntity } from '../projects/entities/project.entity';
+import { ProjectsHelper } from '../projects/projects.helper';
 import { QueryTasksDto, TaskSortBy } from './dto/query-tasks.dto';
 import { TaskEntity } from './entities/task.entity';
+import { TasksScopeHelper } from './tasks-scope.helper';
 import { TasksHelper } from './tasks.helper';
 import { TasksRepository } from './tasks.repository';
 import { TasksService } from './tasks.service';
@@ -17,6 +20,15 @@ const task: TaskEntity = {
   priority: TaskPriority.MEDIUM,
   projectId: 1,
   assigneeId: null,
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
+};
+
+const project: ProjectEntity = {
+  id: 1,
+  name: 'Alpha',
+  description: null,
+  ownerId: 1,
   createdAt: new Date('2026-01-01'),
   updatedAt: new Date('2026-01-01'),
 };
@@ -36,11 +48,17 @@ const createRepositoryMock = () => ({
 });
 
 const createHelperMock = () => ({
-  assertProjectExists: jest.fn().mockResolvedValue(undefined),
   buildWhere: jest.fn().mockReturnValue(where),
   buildOrderBy: jest.fn().mockReturnValue(orderBy),
-  getExistingTask: jest.fn().mockResolvedValue(task),
   assertUserIsProjectMember: jest.fn().mockResolvedValue(undefined),
+});
+
+const createScopeHelperMock = () => ({
+  getExistingTask: jest.fn().mockResolvedValue(task),
+});
+
+const createProjectsHelperMock = () => ({
+  getExistingProject: jest.fn().mockResolvedValue(project),
 });
 
 const createEventEmitterMock = () => ({
@@ -51,11 +69,15 @@ describe('TasksService', () => {
   let service: TasksService;
   let repository: ReturnType<typeof createRepositoryMock>;
   let helper: ReturnType<typeof createHelperMock>;
+  let scopeHelper: ReturnType<typeof createScopeHelperMock>;
+  let projectsHelper: ReturnType<typeof createProjectsHelperMock>;
   let eventEmitter: ReturnType<typeof createEventEmitterMock>;
 
   beforeEach(async () => {
     const repositoryMock = createRepositoryMock();
     const helperMock = createHelperMock();
+    const scopeHelperMock = createScopeHelperMock();
+    const projectsHelperMock = createProjectsHelperMock();
     const eventEmitterMock = createEventEmitterMock();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -63,6 +85,8 @@ describe('TasksService', () => {
         TasksService,
         { provide: TasksRepository, useValue: repositoryMock },
         { provide: TasksHelper, useValue: helperMock },
+        { provide: TasksScopeHelper, useValue: scopeHelperMock },
+        { provide: ProjectsHelper, useValue: projectsHelperMock },
         { provide: EventEmitter2, useValue: eventEmitterMock },
       ],
     }).compile();
@@ -70,6 +94,8 @@ describe('TasksService', () => {
     service = module.get(TasksService);
     repository = repositoryMock;
     helper = helperMock;
+    scopeHelper = scopeHelperMock;
+    projectsHelper = projectsHelperMock;
     eventEmitter = eventEmitterMock;
   });
 
@@ -79,7 +105,7 @@ describe('TasksService', () => {
         service.create(1, { title: 'Write the migration' }),
       ).resolves.toEqual(task);
 
-      expect(helper.assertProjectExists).toHaveBeenCalledWith(1);
+      expect(projectsHelper.getExistingProject).toHaveBeenCalledWith(1);
       expect(repository.create).toHaveBeenCalledWith({
         title: 'Write the migration',
         projectId: 1,
@@ -87,7 +113,9 @@ describe('TasksService', () => {
     });
 
     it('does not persist when the project is missing', async () => {
-      helper.assertProjectExists.mockRejectedValue(new NotFoundException());
+      projectsHelper.getExistingProject.mockRejectedValue(
+        new NotFoundException(),
+      );
 
       await expect(service.create(99, { title: 'Orphan' })).rejects.toThrow(
         NotFoundException,
@@ -103,7 +131,7 @@ describe('TasksService', () => {
         meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
       });
 
-      expect(helper.assertProjectExists).toHaveBeenCalledWith(1);
+      expect(projectsHelper.getExistingProject).toHaveBeenCalledWith(1);
       expect(repository.findMany).toHaveBeenCalledWith(where, orderBy, 0, 20);
       expect(repository.count).toHaveBeenCalledWith(where);
     });
@@ -142,7 +170,9 @@ describe('TasksService', () => {
     });
 
     it('does not query when the project is missing', async () => {
-      helper.assertProjectExists.mockRejectedValue(new NotFoundException());
+      projectsHelper.getExistingProject.mockRejectedValue(
+        new NotFoundException(),
+      );
 
       await expect(service.findAll(99, buildQuery())).rejects.toThrow(
         NotFoundException,
@@ -155,11 +185,11 @@ describe('TasksService', () => {
   describe('findOne', () => {
     it('returns the task', async () => {
       await expect(service.findOne(1, 1)).resolves.toEqual(task);
-      expect(helper.getExistingTask).toHaveBeenCalledWith(1, 1);
+      expect(scopeHelper.getExistingTask).toHaveBeenCalledWith(1, 1);
     });
 
     it('propagates the helper error when the task is missing', async () => {
-      helper.getExistingTask.mockRejectedValue(new NotFoundException());
+      scopeHelper.getExistingTask.mockRejectedValue(new NotFoundException());
 
       await expect(service.findOne(1, 99)).rejects.toThrow(NotFoundException);
     });
@@ -171,14 +201,14 @@ describe('TasksService', () => {
         service.update(1, 1, { status: TaskStatus.DONE }),
       ).resolves.toEqual(task);
 
-      expect(helper.getExistingTask).toHaveBeenCalledWith(1, 1);
+      expect(scopeHelper.getExistingTask).toHaveBeenCalledWith(1, 1);
       expect(repository.update).toHaveBeenCalledWith(1, {
         status: TaskStatus.DONE,
       });
     });
 
     it('does not persist when the task is missing', async () => {
-      helper.getExistingTask.mockRejectedValue(new NotFoundException());
+      scopeHelper.getExistingTask.mockRejectedValue(new NotFoundException());
 
       await expect(service.update(1, 99, { title: 'Renamed' })).rejects.toThrow(
         NotFoundException,
@@ -193,7 +223,7 @@ describe('TasksService', () => {
         task,
       );
 
-      expect(helper.getExistingTask).toHaveBeenCalledWith(1, 1);
+      expect(scopeHelper.getExistingTask).toHaveBeenCalledWith(1, 1);
       expect(helper.assertUserIsProjectMember).toHaveBeenCalledWith(1, 7);
       expect(repository.update).toHaveBeenCalledWith(1, { assigneeId: 7 });
     });
@@ -209,7 +239,7 @@ describe('TasksService', () => {
     });
 
     it('does not persist when the task is missing', async () => {
-      helper.getExistingTask.mockRejectedValue(new NotFoundException());
+      scopeHelper.getExistingTask.mockRejectedValue(new NotFoundException());
 
       await expect(service.assign(1, 99, 3, { assigneeId: 7 })).rejects.toThrow(
         NotFoundException,
@@ -236,12 +266,12 @@ describe('TasksService', () => {
     it('clears the assignee of an existing task', async () => {
       await expect(service.unassign(1, 1)).resolves.toEqual(task);
 
-      expect(helper.getExistingTask).toHaveBeenCalledWith(1, 1);
+      expect(scopeHelper.getExistingTask).toHaveBeenCalledWith(1, 1);
       expect(repository.update).toHaveBeenCalledWith(1, { assigneeId: null });
     });
 
     it('does not persist when the task is missing', async () => {
-      helper.getExistingTask.mockRejectedValue(new NotFoundException());
+      scopeHelper.getExistingTask.mockRejectedValue(new NotFoundException());
 
       await expect(service.unassign(1, 99)).rejects.toThrow(NotFoundException);
       expect(repository.update).not.toHaveBeenCalled();
@@ -252,12 +282,12 @@ describe('TasksService', () => {
     it('deletes an existing task', async () => {
       await expect(service.remove(1, 1)).resolves.toEqual(task);
 
-      expect(helper.getExistingTask).toHaveBeenCalledWith(1, 1);
+      expect(scopeHelper.getExistingTask).toHaveBeenCalledWith(1, 1);
       expect(repository.delete).toHaveBeenCalledWith(1);
     });
 
     it('does not delete when the task is missing', async () => {
-      helper.getExistingTask.mockRejectedValue(new NotFoundException());
+      scopeHelper.getExistingTask.mockRejectedValue(new NotFoundException());
 
       await expect(service.remove(1, 99)).rejects.toThrow(NotFoundException);
       expect(repository.delete).not.toHaveBeenCalled();

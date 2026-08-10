@@ -12,17 +12,21 @@ import {
   TASK_ASSIGNED_EVENT,
   TaskAssignedEvent,
 } from '../../common/events/task-assigned.event';
+import { TasksScopeHelper } from './tasks-scope.helper';
+import { ProjectsHelper } from '../projects/projects.helper';
 
 @Injectable()
 export class TasksService {
   constructor(
     private readonly tasksRepository: TasksRepository,
     private readonly tasksHelper: TasksHelper,
+    private readonly tasksScopeHelper: TasksScopeHelper,
+    private readonly projectsHelper: ProjectsHelper,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(projectId: number, dto: CreateTaskDto): Promise<TaskEntity> {
-    await this.tasksHelper.assertProjectExists(projectId);
+    await this.projectsHelper.getExistingProject(projectId);
 
     return this.tasksRepository.create({ ...dto, projectId });
   }
@@ -31,7 +35,7 @@ export class TasksService {
     projectId: number,
     query: QueryTasksDto,
   ): Promise<PaginatedResult<TaskEntity>> {
-    await this.tasksHelper.assertProjectExists(projectId);
+    await this.projectsHelper.getExistingProject(projectId);
 
     const where = this.tasksHelper.buildWhere(projectId, query);
     const orderBy = this.tasksHelper.buildOrderBy(query);
@@ -53,7 +57,7 @@ export class TasksService {
   }
 
   findOne(projectId: number, id: number): Promise<TaskEntity> {
-    return this.tasksHelper.getExistingTask(projectId, id);
+    return this.tasksScopeHelper.getExistingTask(projectId, id);
   }
 
   async update(
@@ -61,7 +65,7 @@ export class TasksService {
     id: number,
     dto: UpdateTaskDto,
   ): Promise<TaskEntity> {
-    await this.tasksHelper.getExistingTask(projectId, id);
+    await this.tasksScopeHelper.getExistingTask(projectId, id);
 
     return this.tasksRepository.update(id, dto);
   }
@@ -72,7 +76,7 @@ export class TasksService {
     actorId: number,
     dto: AssignTaskDto,
   ): Promise<TaskEntity> {
-    await this.tasksHelper.getExistingTask(projectId, id);
+    await this.tasksScopeHelper.getExistingTask(projectId, id);
     await this.tasksHelper.assertUserIsProjectMember(projectId, dto.assigneeId);
 
     const assignedTask = await this.tasksRepository.update(id, {
@@ -89,13 +93,13 @@ export class TasksService {
   }
 
   async unassign(projectId: number, id: number): Promise<TaskEntity> {
-    await this.tasksHelper.getExistingTask(projectId, id);
+    await this.tasksScopeHelper.getExistingTask(projectId, id);
 
     return this.tasksRepository.update(id, { assigneeId: null });
   }
 
   async remove(projectId: number, id: number): Promise<TaskEntity> {
-    await this.tasksHelper.getExistingTask(projectId, id);
+    await this.tasksScopeHelper.getExistingTask(projectId, id);
 
     return this.tasksRepository.delete(id);
   }

@@ -19,7 +19,6 @@ const member: ProjectMemberEntity = {
 
 const createRepositoryMock = () => ({
   findByProjectAndUser: jest.fn().mockResolvedValue(null),
-  projectExists: jest.fn().mockResolvedValue(true),
   userExists: jest.fn().mockResolvedValue(true),
 });
 
@@ -39,20 +38,6 @@ describe('ProjectMembersHelper', () => {
 
     helper = module.get(ProjectMembersHelper);
     repository = repositoryMock;
-  });
-
-  describe('assertProjectExists', () => {
-    it('passes when the project exists', async () => {
-      await expect(helper.assertProjectExists(1)).resolves.toBeUndefined();
-    });
-
-    it('throws when the project is missing', async () => {
-      repository.projectExists.mockResolvedValue(false);
-
-      await expect(helper.assertProjectExists(99)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
   });
 
   describe('assertUserExists', () => {
