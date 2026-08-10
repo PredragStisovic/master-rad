@@ -9,6 +9,7 @@ import {
   TASK_COMMENTED_EVENT,
   TaskCommentedEvent,
 } from '../../common/events/task-commented.event';
+import { TasksScopeHelper } from '../tasks/tasks-scope.helper';
 
 @Injectable()
 export class TaskCommentsService {
@@ -16,6 +17,7 @@ export class TaskCommentsService {
     private readonly commentsRepository: TaskCommentsRepository,
     private readonly commentsHelper: TaskCommentsHelper,
     private readonly eventEmitter: EventEmitter2,
+    private readonly tasksScopeHelper: TasksScopeHelper,
   ) {}
 
   async create(
@@ -24,7 +26,7 @@ export class TaskCommentsService {
     authorId: number,
     dto: CreateCommentDto,
   ): Promise<TaskCommentEntity> {
-    await this.commentsHelper.assertTaskExists(projectId, taskId);
+    await this.tasksScopeHelper.getExistingTask(projectId, taskId);
 
     const createdComment = await this.commentsRepository.create({
       ...dto,
@@ -44,7 +46,7 @@ export class TaskCommentsService {
     projectId: number,
     taskId: number,
   ): Promise<TaskCommentEntity[]> {
-    await this.commentsHelper.assertTaskExists(projectId, taskId);
+    await this.tasksScopeHelper.getExistingTask(projectId, taskId);
 
     return this.commentsRepository.findMany(taskId);
   }
@@ -54,7 +56,7 @@ export class TaskCommentsService {
     taskId: number,
     id: number,
   ): Promise<TaskCommentEntity> {
-    await this.commentsHelper.assertTaskExists(projectId, taskId);
+    await this.tasksScopeHelper.getExistingTask(projectId, taskId);
 
     return this.commentsHelper.getExistingComment(taskId, id);
   }
@@ -66,7 +68,7 @@ export class TaskCommentsService {
     userId: number,
     dto: UpdateCommentDto,
   ): Promise<TaskCommentEntity> {
-    await this.commentsHelper.assertTaskExists(projectId, taskId);
+    await this.tasksScopeHelper.getExistingTask(projectId, taskId);
 
     const comment = await this.commentsHelper.getExistingComment(taskId, id);
     this.commentsHelper.assertIsAuthor(comment, userId);
@@ -80,7 +82,7 @@ export class TaskCommentsService {
     id: number,
     userId: number,
   ): Promise<TaskCommentEntity> {
-    await this.commentsHelper.assertTaskExists(projectId, taskId);
+    await this.tasksScopeHelper.getExistingTask(projectId, taskId);
 
     const comment = await this.commentsHelper.getExistingComment(taskId, id);
     this.commentsHelper.assertIsAuthor(comment, userId);

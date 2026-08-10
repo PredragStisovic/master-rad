@@ -5,6 +5,8 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProjectRole } from '../../../generated/prisma/client';
+import { ProjectEntity } from '../projects/entities/project.entity';
+import { ProjectsHelper } from '../projects/projects.helper';
 import { ProjectMemberEntity } from './entities/project-member.entity';
 import { ProjectMembersHelper } from './project-members.helper';
 import { ProjectMembersRepository } from './project-members.repository';
@@ -18,6 +20,15 @@ const member: ProjectMemberEntity = {
   joinedAt: new Date('2026-01-01'),
 };
 
+const project: ProjectEntity = {
+  id: 1,
+  name: 'Alpha',
+  description: null,
+  ownerId: 1,
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
+};
+
 const createRepositoryMock = () => ({
   create: jest.fn().mockResolvedValue(member),
   findMany: jest.fn().mockResolvedValue([member]),
@@ -26,39 +37,46 @@ const createRepositoryMock = () => ({
 });
 
 const createHelperMock = () => ({
-  assertProjectExists: jest.fn().mockResolvedValue(undefined),
   assertUserExists: jest.fn().mockResolvedValue(undefined),
   assertNotAlreadyMember: jest.fn().mockResolvedValue(undefined),
   getExistingMember: jest.fn().mockResolvedValue(member),
+});
+
+const createProjectsHelperMock = () => ({
+  getExistingProject: jest.fn().mockResolvedValue(project),
 });
 
 describe('ProjectMembersService', () => {
   let service: ProjectMembersService;
   let repository: ReturnType<typeof createRepositoryMock>;
   let helper: ReturnType<typeof createHelperMock>;
+  let projectsHelper: ReturnType<typeof createProjectsHelperMock>;
 
   beforeEach(async () => {
     const repositoryMock = createRepositoryMock();
     const helperMock = createHelperMock();
+    const projectsHelperMock = createProjectsHelperMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProjectMembersService,
         { provide: ProjectMembersRepository, useValue: repositoryMock },
         { provide: ProjectMembersHelper, useValue: helperMock },
+        { provide: ProjectsHelper, useValue: projectsHelperMock },
       ],
     }).compile();
 
     service = module.get(ProjectMembersService);
     repository = repositoryMock;
     helper = helperMock;
+    projectsHelper = projectsHelperMock;
   });
 
   describe('add', () => {
     it('adds a member after all guard checks pass', async () => {
       await expect(service.add(1, { userId: 2 })).resolves.toEqual(member);
 
-      expect(helper.assertProjectExists).toHaveBeenCalledWith(1);
+      expect(projectsHelper.getExistingProject).toHaveBeenCalledWith(1);
       expect(helper.assertUserExists).toHaveBeenCalledWith(2);
       expect(helper.assertNotAlreadyMember).toHaveBeenCalledWith(1, 2);
       expect(repository.create).toHaveBeenCalledWith({
@@ -69,7 +87,9 @@ describe('ProjectMembersService', () => {
     });
 
     it('does not persist when the project is missing', async () => {
-      helper.assertProjectExists.mockRejectedValue(new NotFoundException());
+      projectsHelper.getExistingProject.mockRejectedValue(
+        new NotFoundException(),
+      );
 
       await expect(service.add(99, { userId: 2 })).rejects.toThrow(
         NotFoundException,
@@ -100,12 +120,14 @@ describe('ProjectMembersService', () => {
     it('returns members after verifying the project exists', async () => {
       await expect(service.list(1)).resolves.toEqual([member]);
 
-      expect(helper.assertProjectExists).toHaveBeenCalledWith(1);
+      expect(projectsHelper.getExistingProject).toHaveBeenCalledWith(1);
       expect(repository.findMany).toHaveBeenCalledWith(1);
     });
 
     it('throws when the project is missing', async () => {
-      helper.assertProjectExists.mockRejectedValue(new NotFoundException());
+      projectsHelper.getExistingProject.mockRejectedValue(
+        new NotFoundException(),
+      );
 
       await expect(service.list(99)).rejects.toThrow(NotFoundException);
       expect(repository.findMany).not.toHaveBeenCalled();

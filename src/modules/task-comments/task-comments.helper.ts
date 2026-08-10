@@ -3,26 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { TasksRepository } from '../tasks/tasks.repository';
 import { TaskCommentEntity } from './entities/task-comment.entity';
 import { TaskCommentsRepository } from './task-comments.repository';
 
 @Injectable()
 export class TaskCommentsHelper {
-  constructor(
-    private readonly commentsRepository: TaskCommentsRepository,
-    private readonly tasksRepository: TasksRepository,
-  ) {}
-
-  async assertTaskExists(projectId: number, taskId: number): Promise<void> {
-    const task = await this.tasksRepository.findById(taskId);
-
-    if (!task || task.projectId !== projectId) {
-      throw new NotFoundException(
-        `Task with id ${taskId} not found in project ${projectId}`,
-      );
-    }
-  }
+  constructor(private readonly commentsRepository: TaskCommentsRepository) {}
 
   async getExistingComment(
     taskId: number,

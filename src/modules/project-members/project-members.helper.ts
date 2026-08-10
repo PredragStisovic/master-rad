@@ -11,12 +11,6 @@ import { ProjectMembersRepository } from './project-members.repository';
 export class ProjectMembersHelper {
   constructor(private readonly membersRepository: ProjectMembersRepository) {}
 
-  async assertProjectExists(projectId: number): Promise<void> {
-    if (!(await this.membersRepository.projectExists(projectId))) {
-      throw new NotFoundException(`Project with id ${projectId} not found`);
-    }
-  }
-
   async assertUserExists(userId: number): Promise<void> {
     if (!(await this.membersRepository.userExists(userId))) {
       throw new BadRequestException(`User with id ${userId} does not exist`);

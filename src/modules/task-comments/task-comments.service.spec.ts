@@ -2,6 +2,9 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TASK_COMMENTED_EVENT } from '../../common/events/task-commented.event';
+import { TaskEntity } from '../tasks/entities/task.entity';
+import { TasksScopeHelper } from '../tasks/tasks-scope.helper';
+import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
 import { TaskCommentEntity } from './entities/task-comment.entity';
 import { TaskCommentsHelper } from './task-comments.helper';
 import { TaskCommentsRepository } from './task-comments.repository';
@@ -23,10 +26,25 @@ const createRepositoryMock = () => ({
   delete: jest.fn().mockResolvedValue(comment),
 });
 
+const task: TaskEntity = {
+  id: 5,
+  title: 'Write the migration',
+  description: null,
+  status: TaskStatus.TODO,
+  priority: TaskPriority.MEDIUM,
+  projectId: 1,
+  assigneeId: null,
+  createdAt: new Date('2026-01-01'),
+  updatedAt: new Date('2026-01-01'),
+};
+
 const createHelperMock = () => ({
-  assertTaskExists: jest.fn().mockResolvedValue(undefined),
   getExistingComment: jest.fn().mockResolvedValue(comment),
   assertIsAuthor: jest.fn(),
+});
+
+const createScopeHelperMock = () => ({
+  getExistingTask: jest.fn().mockResolvedValue(task),
 });
 
 const createEventEmitterMock = () => ({
@@ -37,11 +55,13 @@ describe('TaskCommentsService', () => {
   let service: TaskCommentsService;
   let repository: ReturnType<typeof createRepositoryMock>;
   let helper: ReturnType<typeof createHelperMock>;
+  let scopeHelper: ReturnType<typeof createScopeHelperMock>;
   let eventEmitter: ReturnType<typeof createEventEmitterMock>;
 
   beforeEach(async () => {
     const repositoryMock = createRepositoryMock();
     const helperMock = createHelperMock();
+    const scopeHelperMock = createScopeHelperMock();
     const eventEmitterMock = createEventEmitterMock();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -49,6 +69,7 @@ describe('TaskCommentsService', () => {
         TaskCommentsService,
         { provide: TaskCommentsRepository, useValue: repositoryMock },
         { provide: TaskCommentsHelper, useValue: helperMock },
+        { provide: TasksScopeHelper, useValue: scopeHelperMock },
         { provide: EventEmitter2, useValue: eventEmitterMock },
       ],
     }).compile();
@@ -56,6 +77,7 @@ describe('TaskCommentsService', () => {
     service = module.get(TaskCommentsService);
     repository = repositoryMock;
     helper = helperMock;
+    scopeHelper = scopeHelperMock;
     eventEmitter = eventEmitterMock;
   });
 
@@ -65,7 +87,7 @@ describe('TaskCommentsService', () => {
         service.create(1, 5, 7, { body: 'Looks good to me' }),
       ).resolves.toEqual(comment);
 
-      expect(helper.assertTaskExists).toHaveBeenCalledWith(1, 5);
+      expect(scopeHelper.getExistingTask).toHaveBeenCalledWith(1, 5);
       expect(repository.create).toHaveBeenCalledWith({
         body: 'Looks good to me',
         taskId: 5,
@@ -83,7 +105,7 @@ describe('TaskCommentsService', () => {
     });
 
     it('does not persist when the task is missing', async () => {
-      helper.assertTaskExists.mockRejectedValue(new NotFoundException());
+      scopeHelper.getExistingTask.mockRejectedValue(new NotFoundException());
 
       await expect(
         service.create(1, 99, 7, { body: 'Orphan' }),
@@ -97,12 +119,12 @@ describe('TaskCommentsService', () => {
     it('returns the comments of the task', async () => {
       await expect(service.findAll(1, 5)).resolves.toEqual([comment]);
 
-      expect(helper.assertTaskExists).toHaveBeenCalledWith(1, 5);
+      expect(scopeHelper.getExistingTask).toHaveBeenCalledWith(1, 5);
       expect(repository.findMany).toHaveBeenCalledWith(5);
     });
 
     it('does not query when the task is missing', async () => {
-      helper.assertTaskExists.mockRejectedValue(new NotFoundException());
+      scopeHelper.getExistingTask.mockRejectedValue(new NotFoundException());
 
       await expect(service.findAll(1, 99)).rejects.toThrow(NotFoundException);
       expect(repository.findMany).not.toHaveBeenCalled();
@@ -113,7 +135,7 @@ describe('TaskCommentsService', () => {
     it('returns the comment of the task', async () => {
       await expect(service.findOne(1, 5, 1)).resolves.toEqual(comment);
 
-      expect(helper.assertTaskExists).toHaveBeenCalledWith(1, 5);
+      expect(scopeHelper.getExistingTask).toHaveBeenCalledWith(1, 5);
       expect(helper.getExistingComment).toHaveBeenCalledWith(5, 1);
     });
 
@@ -178,7 +200,7 @@ describe('TaskCommentsService', () => {
     });
 
     it('does not delete when the task is missing', async () => {
-      helper.assertTaskExists.mockRejectedValue(new NotFoundException());
+      scopeHelper.getExistingTask.mockRejectedValue(new NotFoundException());
 
       await expect(service.remove(1, 99, 1, 7)).rejects.toThrow(
         NotFoundException,

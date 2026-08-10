@@ -58,12 +58,6 @@ export class ProjectMembersRepository {
     });
   }
 
-  async projectExists(projectId: number): Promise<boolean> {
-    const count = await this.prisma.project.count({ where: { id: projectId } });
-
-    return count > 0;
-  }
-
   async userExists(userId: number): Promise<boolean> {
     const count = await this.prisma.user.count({ where: { id: userId } });
 

@@ -4,19 +4,21 @@ import { UpdateMemberDto } from './dto/update-member.dto';
 import { ProjectMemberEntity } from './entities/project-member.entity';
 import { ProjectMembersHelper } from './project-members.helper';
 import { ProjectMembersRepository } from './project-members.repository';
+import { ProjectsHelper } from '../projects/projects.helper';
 
 @Injectable()
 export class ProjectMembersService {
   constructor(
     private readonly membersRepository: ProjectMembersRepository,
     private readonly membersHelper: ProjectMembersHelper,
+    private readonly projectsHelper: ProjectsHelper,
   ) {}
 
   async add(
     projectId: number,
     dto: AddMemberDto,
   ): Promise<ProjectMemberEntity> {
-    await this.membersHelper.assertProjectExists(projectId);
+    await this.projectsHelper.getExistingProject(projectId);
     await this.membersHelper.assertUserExists(dto.userId);
     await this.membersHelper.assertNotAlreadyMember(projectId, dto.userId);
 
@@ -28,7 +30,7 @@ export class ProjectMembersService {
   }
 
   async list(projectId: number): Promise<ProjectMemberEntity[]> {
-    await this.membersHelper.assertProjectExists(projectId);
+    await this.projectsHelper.getExistingProject(projectId);
 
     return this.membersRepository.findMany(projectId);
   }

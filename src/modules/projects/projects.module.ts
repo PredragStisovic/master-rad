@@ -10,6 +10,6 @@ import { ProjectsService } from './projects.service';
   imports: [RolesModule],
   controllers: [ProjectsController],
   providers: [ProjectsService, ProjectsHelper, ProjectsRepository],
-  exports: [ProjectsService, ProjectsRepository],
+  exports: [ProjectsService, ProjectsRepository, ProjectsHelper],
 })
 export class ProjectsModule {}
