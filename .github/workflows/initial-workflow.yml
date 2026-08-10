@@ -51,10 +51,12 @@ jobs:
 
       - run: npx prisma migrate deploy
 
+      - run: npm run db:seed
+
       - run: npm run test:e2e
 
       - run: npm test
-      
+
       - run: npm run test:cov
 
       - name: Upload coverage report
