@@ -1,11 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
 import { ProjectEntity } from '../projects/entities/project.entity';
-import { ProjectsRepository } from '../projects/projects.repository';
 import { TaskEntity } from '../tasks/entities/task.entity';
-import { TasksRepository } from '../tasks/tasks.repository';
 import { QuerySearchDto, SearchScope } from './dto/query-search.dto';
 import { SearchHelper } from './search.helper';
+import { SearchRepository } from './search.repository';
 import { SearchService } from './search.service';
 
 const project: ProjectEntity = {
@@ -29,25 +28,17 @@ const task: TaskEntity = {
   updatedAt: new Date('2026-01-01'),
 };
 
-const projectWhere = { AND: [{ ownerId: 7 }] };
-const taskWhere = { project: { ownerId: 7 } };
-
 const query = (overrides: Partial<QuerySearchDto> = {}): QuerySearchDto =>
   Object.assign(new QuerySearchDto(), { q: 'migration' }, overrides);
 
-const createProjectsRepositoryMock = () => ({
-  findMany: jest.fn().mockResolvedValue([project]),
-  count: jest.fn().mockResolvedValue(1),
-});
-
-const createTasksRepositoryMock = () => ({
-  findMany: jest.fn().mockResolvedValue([task]),
-  count: jest.fn().mockResolvedValue(1),
+const createRepositoryMock = () => ({
+  findProjects: jest.fn().mockResolvedValue([project]),
+  countProjects: jest.fn().mockResolvedValue(1),
+  findTasks: jest.fn().mockResolvedValue([task]),
+  countTasks: jest.fn().mockResolvedValue(1),
 });
 
 const createHelperMock = () => ({
-  buildProjectWhere: jest.fn().mockReturnValue(projectWhere),
-  buildTaskWhere: jest.fn().mockReturnValue(taskWhere),
   toPage: jest.fn((data: unknown[], total: number) => ({
     data,
     meta: { total, page: 1, limit: 20, totalPages: 1 },
@@ -56,27 +47,23 @@ const createHelperMock = () => ({
 
 describe('SearchService', () => {
   let service: SearchService;
-  let projectsRepository: ReturnType<typeof createProjectsRepositoryMock>;
-  let tasksRepository: ReturnType<typeof createTasksRepositoryMock>;
+  let repository: ReturnType<typeof createRepositoryMock>;
   let helper: ReturnType<typeof createHelperMock>;
 
   beforeEach(async () => {
-    const projectsRepositoryMock = createProjectsRepositoryMock();
-    const tasksRepositoryMock = createTasksRepositoryMock();
+    const repositoryMock = createRepositoryMock();
     const helperMock = createHelperMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SearchService,
-        { provide: ProjectsRepository, useValue: projectsRepositoryMock },
-        { provide: TasksRepository, useValue: tasksRepositoryMock },
+        { provide: SearchRepository, useValue: repositoryMock },
         { provide: SearchHelper, useValue: helperMock },
       ],
     }).compile();
 
     service = module.get(SearchService);
-    projectsRepository = projectsRepositoryMock;
-    tasksRepository = tasksRepositoryMock;
+    repository = repositoryMock;
     helper = helperMock;
   });
 
@@ -94,33 +81,35 @@ describe('SearchService', () => {
           meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
         },
       });
-      expect(projectsRepository.findMany).toHaveBeenCalledWith(
-        projectWhere,
+      expect(repository.findProjects).toHaveBeenCalledWith(
+        7,
+        'migration',
         10,
         10,
       );
-      expect(tasksRepository.findMany).toHaveBeenCalledWith(
-        taskWhere,
-        [{ id: 'asc' }],
-        10,
-        10,
-      );
+      expect(repository.findTasks).toHaveBeenCalledWith(7, 'migration', 10, 10);
     });
 
-    it('counts each collection with the same filter it pages with', async () => {
+    it('counts each collection with the same term and caller it pages with', async () => {
       await service.search(7, query());
 
-      expect(projectsRepository.count).toHaveBeenCalledWith(projectWhere);
-      expect(tasksRepository.count).toHaveBeenCalledWith(taskWhere);
+      expect(repository.countProjects).toHaveBeenCalledWith(7, 'migration');
+      expect(repository.countTasks).toHaveBeenCalledWith(7, 'migration');
     });
 
-    it('builds both filters from the caller, never from the query alone', async () => {
-      const dto = query();
+    it('scopes every read to the caller, never to the term alone', async () => {
+      await service.search(7, query());
 
-      await service.search(7, dto);
+      for (const read of [
+        repository.findProjects,
+        repository.countProjects,
+        repository.findTasks,
+        repository.countTasks,
+      ]) {
+        const [callerId] = read.mock.calls[0] as [number, ...unknown[]];
 
-      expect(helper.buildProjectWhere).toHaveBeenCalledWith(7, dto);
-      expect(helper.buildTaskWhere).toHaveBeenCalledWith(7, dto);
+        expect(callerId).toBe(7);
+      }
     });
 
     it('leaves tasks unqueried when the scope is projects', async () => {
@@ -130,8 +119,8 @@ describe('SearchService', () => {
       );
 
       expect(result.tasks.data).toEqual([]);
-      expect(tasksRepository.findMany).not.toHaveBeenCalled();
-      expect(tasksRepository.count).not.toHaveBeenCalled();
+      expect(repository.findTasks).not.toHaveBeenCalled();
+      expect(repository.countTasks).not.toHaveBeenCalled();
     });
 
     it('leaves projects unqueried when the scope is tasks', async () => {
@@ -141,8 +130,8 @@ describe('SearchService', () => {
       );
 
       expect(result.projects.data).toEqual([]);
-      expect(projectsRepository.findMany).not.toHaveBeenCalled();
-      expect(projectsRepository.count).not.toHaveBeenCalled();
+      expect(repository.findProjects).not.toHaveBeenCalled();
+      expect(repository.countProjects).not.toHaveBeenCalled();
     });
 
     it('reports a zero total for the excluded collection', async () => {

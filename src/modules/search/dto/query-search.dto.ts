@@ -12,7 +12,10 @@ export enum SearchScope {
 
 export class QuerySearchDto extends PaginationDto {
   @ApiProperty({
-    description: 'Term matched case-insensitively against names and titles',
+    description:
+      'Full-text term matched against names, titles and descriptions. ' +
+      'Words are stemmed and combined with AND; "quoted words" match as a ' +
+      'phrase and -word excludes.',
     example: 'migration',
     minLength: 2,
     maxLength: 100,
