@@ -43,6 +43,31 @@ describe('UserActivityHelper', () => {
     usersRepository = usersRepositoryMock;
   });
 
+  describe('cacheKey', () => {
+    it('pins the key to the reported user and both bounds', () => {
+      expect(helper.cacheKey(7, query({ from, to }))).toBe(
+        'reports:user-activity:v1:u7:' +
+          '2026-01-01T00:00:00.000Z:2026-02-01T00:00:00.000Z',
+      );
+    });
+
+    it('marks an omitted bound as open rather than dropping it', () => {
+      expect(helper.cacheKey(7, query({ from }))).toBe(
+        'reports:user-activity:v1:u7:2026-01-01T00:00:00.000Z:open',
+      );
+    });
+
+    it('keeps a shifted window off the entry of the original', () => {
+      expect(helper.cacheKey(7, query({ from, to }))).not.toBe(
+        helper.cacheKey(7, query({ from, to: from })),
+      );
+    });
+
+    it('keeps one reported user off the entry of another', () => {
+      expect(helper.cacheKey(7, query())).not.toBe(helper.cacheKey(8, query()));
+    });
+  });
+
   describe('assertUserExists', () => {
     it('passes for a known user', async () => {
       await expect(helper.assertUserExists(7)).resolves.toBeUndefined();

@@ -1,3 +1,4 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditAction } from '../../../generated/prisma/client';
@@ -33,6 +34,7 @@ const createHelperMock = () => ({
   assertUserExists: jest.fn().mockResolvedValue(undefined),
   assertWindowIsOrdered: jest.fn(),
   buildWhere: jest.fn().mockReturnValue(where),
+  cacheKey: jest.fn().mockReturnValue('reports:user-activity:v1:u7:open:open'),
   toActionCounts: jest.fn().mockReturnValue(byAction),
   toEntityTypeCounts: jest.fn().mockReturnValue(entityTypeRows),
 });
@@ -41,16 +43,23 @@ const createReportsHelperMock = () => ({
   sumCounts: jest.fn().mockReturnValue(12),
 });
 
+/** Misses by default, so the tests below exercise the uncached path. */
+const createCacheMock = () => ({
+  wrap: jest.fn((_key: string, load: () => Promise<unknown>) => load()),
+});
+
 describe('UserActivityService', () => {
   let service: UserActivityService;
   let repository: ReturnType<typeof createRepositoryMock>;
   let helper: ReturnType<typeof createHelperMock>;
   let reportsHelper: ReturnType<typeof createReportsHelperMock>;
+  let cache: ReturnType<typeof createCacheMock>;
 
   beforeEach(async () => {
     const repositoryMock = createRepositoryMock();
     const helperMock = createHelperMock();
     const reportsHelperMock = createReportsHelperMock();
+    const cacheMock = createCacheMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -58,6 +67,7 @@ describe('UserActivityService', () => {
         { provide: UserActivityRepository, useValue: repositoryMock },
         { provide: UserActivityHelper, useValue: helperMock },
         { provide: ReportsHelper, useValue: reportsHelperMock },
+        { provide: CACHE_MANAGER, useValue: cacheMock },
       ],
     }).compile();
 
@@ -65,6 +75,7 @@ describe('UserActivityService', () => {
     repository = repositoryMock;
     helper = helperMock;
     reportsHelper = reportsHelperMock;
+    cache = cacheMock;
   });
 
   describe('userActivity', () => {
@@ -115,6 +126,47 @@ describe('UserActivityService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(helper.assertUserExists).not.toHaveBeenCalled();
       expect(repository.countByAction).not.toHaveBeenCalled();
+    });
+
+    it('caches under the user-and-window key the helper builds', async () => {
+      const dto = query({ from, to });
+
+      await service.userActivity(7, dto);
+
+      expect(helper.cacheKey).toHaveBeenCalledWith(7, dto);
+      expect(cache.wrap).toHaveBeenCalledWith(
+        'reports:user-activity:v1:u7:open:open',
+        expect.any(Function),
+      );
+    });
+
+    it('serves a cached report without aggregating again', async () => {
+      const cached = { userId: 7, totalActions: 12, byAction };
+      cache.wrap.mockResolvedValue(cached);
+
+      await expect(service.userActivity(7, query())).resolves.toBe(cached);
+      expect(repository.countByAction).not.toHaveBeenCalled();
+      expect(repository.countByEntityType).not.toHaveBeenCalled();
+    });
+
+    it('never lets a cached entry answer for an unknown user', async () => {
+      helper.assertUserExists.mockRejectedValue(new NotFoundException());
+
+      await expect(service.userActivity(404, query())).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(cache.wrap).not.toHaveBeenCalled();
+    });
+
+    it('never lets a cached entry answer for an inverted window', async () => {
+      helper.assertWindowIsOrdered.mockImplementation(() => {
+        throw new BadRequestException();
+      });
+
+      await expect(
+        service.userActivity(7, query({ from: to, to: from })),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(cache.wrap).not.toHaveBeenCalled();
     });
   });
 });

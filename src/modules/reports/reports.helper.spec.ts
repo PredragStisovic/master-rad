@@ -13,6 +13,16 @@ describe('ReportsHelper', () => {
     helper = module.get(ReportsHelper);
   });
 
+  describe('summaryCacheKey', () => {
+    it('namespaces, versions and scopes the key to one project', () => {
+      expect(helper.summaryCacheKey(1)).toBe('reports:project-summary:v1:p1');
+    });
+
+    it('keeps one project off the entry of another', () => {
+      expect(helper.summaryCacheKey(1)).not.toBe(helper.summaryCacheKey(2));
+    });
+  });
+
   describe('toStatusCounts', () => {
     it('fills in the statuses the grouping left out', () => {
       expect(
