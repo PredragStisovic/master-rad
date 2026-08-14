@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
+import type { Cache } from 'cache-manager';
 import { ProjectEntity } from '../projects/entities/project.entity';
 import { TaskEntity } from '../tasks/entities/task.entity';
 import { QuerySearchDto, SearchScope } from './dto/query-search.dto';
@@ -11,43 +13,53 @@ export class SearchService {
   constructor(
     private readonly searchRepository: SearchRepository,
     private readonly searchHelper: SearchHelper,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
   ) {}
 
-  async search(
-    userId: number,
-    query: QuerySearchDto,
-  ): Promise<SearchResultsEntity> {
-    const wantsProjects = query.type !== SearchScope.TASKS;
-    const wantsTasks = query.type !== SearchScope.PROJECTS;
+  /**
+   * Four ranked full-text queries per request, and the same terms come back
+   * repeatedly while a user pages through them — so the whole response is
+   * cached under a caller-scoped key. Nothing invalidates it on write: a match
+   * that appears within the TTL shows up on the next expiry, which is the
+   * trade this endpoint accepts.
+   */
+  search(userId: number, query: QuerySearchDto): Promise<SearchResultsEntity> {
+    return this.cache.wrap(
+      this.searchHelper.cacheKey(userId, query),
+      async () => {
+        const wantsProjects = query.type !== SearchScope.TASKS;
+        const wantsTasks = query.type !== SearchScope.PROJECTS;
 
-    const [projects, projectTotal, tasks, taskTotal] = await Promise.all([
-      wantsProjects
-        ? this.searchRepository.findProjects(
-            userId,
-            query.q,
-            query.skip,
-            query.limit,
-          )
-        : Promise.resolve<ProjectEntity[]>([]),
-      wantsProjects
-        ? this.searchRepository.countProjects(userId, query.q)
-        : Promise.resolve(0),
-      wantsTasks
-        ? this.searchRepository.findTasks(
-            userId,
-            query.q,
-            query.skip,
-            query.limit,
-          )
-        : Promise.resolve<TaskEntity[]>([]),
-      wantsTasks
-        ? this.searchRepository.countTasks(userId, query.q)
-        : Promise.resolve(0),
-    ]);
+        const [projects, projectTotal, tasks, taskTotal] = await Promise.all([
+          wantsProjects
+            ? this.searchRepository.findProjects(
+                userId,
+                query.q,
+                query.skip,
+                query.limit,
+              )
+            : Promise.resolve<ProjectEntity[]>([]),
+          wantsProjects
+            ? this.searchRepository.countProjects(userId, query.q)
+            : Promise.resolve(0),
+          wantsTasks
+            ? this.searchRepository.findTasks(
+                userId,
+                query.q,
+                query.skip,
+                query.limit,
+              )
+            : Promise.resolve<TaskEntity[]>([]),
+          wantsTasks
+            ? this.searchRepository.countTasks(userId, query.q)
+            : Promise.resolve(0),
+        ]);
 
-    return {
-      projects: this.searchHelper.toPage(projects, projectTotal, query),
-      tasks: this.searchHelper.toPage(tasks, taskTotal, query),
-    };
+        return {
+          projects: this.searchHelper.toPage(projects, projectTotal, query),
+          tasks: this.searchHelper.toPage(tasks, taskTotal, query),
+        };
+      },
+    );
   }
 }

@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { QuerySearchDto } from './dto/query-search.dto';
+import { QuerySearchDto, SearchScope } from './dto/query-search.dto';
 import { SearchHelper } from './search.helper';
 
 const query = (overrides: Partial<QuerySearchDto> = {}): QuerySearchDto =>
@@ -14,6 +14,37 @@ describe('SearchHelper', () => {
     }).compile();
 
     helper = module.get(SearchHelper);
+  });
+
+  describe('cacheKey', () => {
+    it('separates one caller from another on the same query', () => {
+      expect(helper.cacheKey(7, query())).not.toBe(helper.cacheKey(8, query()));
+    });
+
+    it('separates every input that changes the result', () => {
+      const base = helper.cacheKey(7, query());
+
+      for (const overrides of [
+        { q: 'indexing' },
+        { type: SearchScope.TASKS },
+        { page: 2 },
+        { limit: 10 },
+      ]) {
+        expect(helper.cacheKey(7, query(overrides))).not.toBe(base);
+      }
+    });
+
+    it('folds case so the same term shares one entry', () => {
+      expect(helper.cacheKey(7, query({ q: 'Migration' }))).toBe(
+        helper.cacheKey(7, query({ q: 'migration' })),
+      );
+    });
+
+    it('escapes a term so it cannot forge extra key segments', () => {
+      expect(helper.cacheKey(7, query({ q: 'a:b' }))).toBe(
+        'search:v1:u7:all:p1:l20:a%3Ab',
+      );
+    });
   });
 
   describe('toPage', () => {

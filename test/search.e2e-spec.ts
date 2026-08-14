@@ -240,6 +240,25 @@ describe('SearchController (e2e)', () => {
     expect(results.tasks.data[0].projectId).toBe(foreignProjectId);
   });
 
+  it('GET /search keeps a warmed entry off a different caller', async () => {
+    const term = 'q=e2e%20search%20alpha';
+
+    // Warms the cache for the owner first: both callers match the same term,
+    // but each may only reach their own projects, so a key that ignored the
+    // caller would replay the owner's matches to the outsider.
+    const owner = unwrap<SearchResultsEntity>(await search(ownerToken, term));
+    const outsider = unwrap<SearchResultsEntity>(
+      await search(outsiderToken, term),
+    );
+
+    expect(owner.projects.data.map((project) => project.id)).toEqual([
+      ownedProjectId,
+    ]);
+    expect(outsider.projects.data.map((project) => project.id)).toEqual([
+      foreignProjectId,
+    ]);
+  });
+
   it('GET /search reaches a project the caller only belongs to', async () => {
     const response = await search(memberToken, 'q=e2e%20search%20beta');
 

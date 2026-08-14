@@ -4,6 +4,12 @@ import { AssigneeTaskCountEntity } from './entities/project-summary.entity';
 import { AssigneeCount, StatusCount } from './reports.repository';
 
 /**
+ * Shared by both reports so one bump retires every cached report payload at
+ * once, whenever their shape changes.
+ */
+export const CACHE_KEY_VERSION = 'v1';
+
+/**
  * Busiest assignee first, ties broken by id so the report is stable between
  * requests. The unassigned bucket is a backlog indicator rather than a person,
  * so it is pinned last however large it is.
@@ -25,6 +31,15 @@ const byWorkload = (
 
 @Injectable()
 export class ReportsHelper {
+  /**
+   * Keyed by project alone: the summary counts the project's tasks, and the
+   * membership check that decides who may ask for it happens in the guard,
+   * before this cache is ever consulted.
+   */
+  summaryCacheKey(projectId: number): string {
+    return `reports:project-summary:${CACHE_KEY_VERSION}:p${projectId}`;
+  }
+
   /**
    * `GROUP BY` only returns statuses that have rows, but a summary that drops
    * the empty ones reads as missing data rather than as a zero, so every

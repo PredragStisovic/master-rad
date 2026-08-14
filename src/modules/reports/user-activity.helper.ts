@@ -7,7 +7,11 @@ import { AuditAction, Prisma } from '../../../generated/prisma/client';
 import { UsersRepository } from '../users/users.repository';
 import { QueryUserActivityDto } from './dto/query-user-activity.dto';
 import { EntityTypeActivityEntity } from './entities/user-activity.entity';
+import { CACHE_KEY_VERSION } from './reports.helper';
 import { ActionCount, EntityTypeCount } from './user-activity.repository';
+
+/** An omitted bound leaves that side of the window open. */
+const bound = (at: Date | undefined): string => at?.toISOString() ?? 'open';
 
 /** Most-touched resource first, ties broken by name so the order is stable. */
 const byVolume = (
@@ -18,6 +22,21 @@ const byVolume = (
 @Injectable()
 export class UserActivityHelper {
   constructor(private readonly usersRepository: UsersRepository) {}
+
+  /**
+   * Keyed by the user being reported on plus the window, never by the caller:
+   * the route is admin-only, so every caller that gets this far is entitled to
+   * the same answer.
+   */
+  cacheKey(userId: number, query: QueryUserActivityDto): string {
+    return [
+      'reports:user-activity',
+      CACHE_KEY_VERSION,
+      `u${userId}`,
+      bound(query.from),
+      bound(query.to),
+    ].join(':');
+  }
 
   /**
    * An unknown user has no audit rows, so the report would happily come back

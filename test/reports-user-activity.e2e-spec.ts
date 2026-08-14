@@ -1,5 +1,7 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -17,6 +19,7 @@ const february = new Date('2026-02-10T00:00:00.000Z');
 describe('UserActivityController (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let cache: Cache;
   let roleId: number;
   let plainRoleId: number;
   let analystToken: string;
@@ -85,6 +88,7 @@ describe('UserActivityController (e2e)', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
+    cache = app.get(CACHE_MANAGER);
 
     const role = await prisma.role.upsert({
       where: { name: 'e2e-activity-role' },
@@ -136,10 +140,14 @@ describe('UserActivityController (e2e)', () => {
     plainToken = await login(plainEmail);
   });
 
+  // The report is cached with no write-through invalidation, so a test that
+  // rebuilds the audit rows would otherwise read the previous test's counts.
+  // Clearing keeps each case about the aggregation, not the TTL.
   beforeEach(async () => {
     await prisma.auditLog.deleteMany({
       where: { userId: { in: [subjectId, otherId] } },
     });
+    await cache.clear();
   });
 
   afterAll(async () => {

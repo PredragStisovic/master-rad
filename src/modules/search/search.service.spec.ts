@@ -1,3 +1,4 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Test, TestingModule } from '@nestjs/testing';
 import { TaskPriority, TaskStatus } from '../../../generated/prisma/client';
 import { ProjectEntity } from '../projects/entities/project.entity';
@@ -39,32 +40,42 @@ const createRepositoryMock = () => ({
 });
 
 const createHelperMock = () => ({
+  cacheKey: jest.fn().mockReturnValue('search:v1:u7:all:p1:l20:migration'),
   toPage: jest.fn((data: unknown[], total: number) => ({
     data,
     meta: { total, page: 1, limit: 20, totalPages: 1 },
   })),
 });
 
+/** Misses by default, so the tests below exercise the uncached path. */
+const createCacheMock = () => ({
+  wrap: jest.fn((_key: string, load: () => Promise<unknown>) => load()),
+});
+
 describe('SearchService', () => {
   let service: SearchService;
   let repository: ReturnType<typeof createRepositoryMock>;
   let helper: ReturnType<typeof createHelperMock>;
+  let cache: ReturnType<typeof createCacheMock>;
 
   beforeEach(async () => {
     const repositoryMock = createRepositoryMock();
     const helperMock = createHelperMock();
+    const cacheMock = createCacheMock();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SearchService,
         { provide: SearchRepository, useValue: repositoryMock },
         { provide: SearchHelper, useValue: helperMock },
+        { provide: CACHE_MANAGER, useValue: cacheMock },
       ],
     }).compile();
 
     service = module.get(SearchService);
     repository = repositoryMock;
     helper = helperMock;
+    cache = cacheMock;
   });
 
   describe('search', () => {
@@ -138,6 +149,27 @@ describe('SearchService', () => {
       await service.search(7, query({ type: SearchScope.TASKS }));
 
       expect(helper.toPage).toHaveBeenCalledWith([], 0, expect.anything());
+    });
+
+    it('caches under the caller-scoped key the helper builds', async () => {
+      const dto = query();
+
+      await service.search(7, dto);
+
+      expect(helper.cacheKey).toHaveBeenCalledWith(7, dto);
+      expect(cache.wrap).toHaveBeenCalledWith(
+        'search:v1:u7:all:p1:l20:migration',
+        expect.any(Function),
+      );
+    });
+
+    it('serves a cached response without querying at all', async () => {
+      const cached = { projects: { data: [] }, tasks: { data: [] } };
+      cache.wrap.mockResolvedValue(cached);
+
+      await expect(service.search(7, query())).resolves.toBe(cached);
+      expect(repository.findProjects).not.toHaveBeenCalled();
+      expect(repository.findTasks).not.toHaveBeenCalled();
     });
   });
 });

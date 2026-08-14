@@ -1,5 +1,7 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Cache } from 'cache-manager';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -15,6 +17,7 @@ const unwrap = <T>(response: { body: unknown }): T =>
 describe('ReportsController (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let cache: Cache;
   let roleId: number;
   let blindRoleId: number;
   let ownerToken: string;
@@ -96,6 +99,7 @@ describe('ReportsController (e2e)', () => {
     await app.init();
 
     prisma = app.get(PrismaService);
+    cache = app.get(CACHE_MANAGER);
 
     const role = await prisma.role.upsert({
       where: { name: 'e2e-reports-role' },
@@ -162,8 +166,13 @@ describe('ReportsController (e2e)', () => {
     });
   });
 
+  // The summary is cached with no write-through invalidation, so a test that
+  // rebuilds the project's tasks would otherwise read the previous test's
+  // numbers. Clearing keeps each case about the aggregation, not the TTL —
+  // the caching itself is asserted on its own below.
   beforeEach(async () => {
     await prisma.task.deleteMany({ where: { projectId } });
+    await cache.clear();
   });
 
   afterAll(async () => {
@@ -250,6 +259,35 @@ describe('ReportsController (e2e)', () => {
 
     expect(response.status).toBe(200);
     expect(unwrap<ProjectSummaryEntity>(response).totalTasks).toBe(1);
+  });
+
+  it('GET summary serves a repeat read from cache', async () => {
+    await createTask({});
+    await summaryOf(ownerToken, projectId);
+
+    // Written after the summary was cached, so it must not show up until the
+    // entry expires — this endpoint trades freshness for the two aggregates.
+    await createTask({});
+    const cached = await summaryOf(ownerToken, projectId);
+
+    expect(cached.status).toBe(200);
+    expect(unwrap<ProjectSummaryEntity>(cached).totalTasks).toBe(1);
+
+    await cache.clear();
+    const fresh = await summaryOf(ownerToken, projectId);
+
+    expect(unwrap<ProjectSummaryEntity>(fresh).totalTasks).toBe(2);
+  });
+
+  it('GET summary caches each project separately', async () => {
+    await createTask({});
+    await summaryOf(ownerToken, projectId);
+
+    const other = await summaryOf(ownerToken, emptyProjectId);
+
+    expect(other.status).toBe(200);
+    expect(unwrap<ProjectSummaryEntity>(other).projectId).toBe(emptyProjectId);
+    expect(unwrap<ProjectSummaryEntity>(other).totalTasks).toBe(0);
   });
 
   it('GET summary is forbidden for a non-member', async () => {
