@@ -5,10 +5,6 @@ import { SearchHelper } from './search.helper';
 const query = (overrides: Partial<QuerySearchDto> = {}): QuerySearchDto =>
   Object.assign(new QuerySearchDto(), { q: 'migration' }, overrides);
 
-const accessibleTo = (userId: number) => ({
-  OR: [{ ownerId: userId }, { members: { some: { userId } } }],
-});
-
 describe('SearchHelper', () => {
   let helper: SearchHelper;
 
@@ -18,68 +14,6 @@ describe('SearchHelper', () => {
     }).compile();
 
     helper = module.get(SearchHelper);
-  });
-
-  describe('buildAccessibleProjectsWhere', () => {
-    it('reaches only the projects the caller owns or belongs to', () => {
-      expect(helper.buildAccessibleProjectsWhere(7)).toEqual(accessibleTo(7));
-    });
-  });
-
-  describe('buildProjectWhere', () => {
-    it('matches name or description case-insensitively inside the caller’s reach', () => {
-      expect(helper.buildProjectWhere(7, query())).toEqual({
-        AND: [
-          accessibleTo(7),
-          {
-            OR: [
-              { name: { contains: 'migration', mode: 'insensitive' } },
-              { description: { contains: 'migration', mode: 'insensitive' } },
-            ],
-          },
-        ],
-      });
-    });
-
-    it('escapes LIKE wildcards so `%` cannot match every row', () => {
-      const where = helper.buildProjectWhere(7, query({ q: '100%_off' }));
-
-      expect(where.AND).toContainEqual({
-        OR: [
-          { name: { contains: '100\\%\\_off', mode: 'insensitive' } },
-          { description: { contains: '100\\%\\_off', mode: 'insensitive' } },
-        ],
-      });
-    });
-
-    it('escapes a backslash before it can escape something else', () => {
-      const where = helper.buildProjectWhere(7, query({ q: 'a\\b' }));
-
-      expect(where.AND).toContainEqual({
-        OR: [
-          { name: { contains: 'a\\\\b', mode: 'insensitive' } },
-          { description: { contains: 'a\\\\b', mode: 'insensitive' } },
-        ],
-      });
-    });
-  });
-
-  describe('buildTaskWhere', () => {
-    it('matches title or description within the caller’s projects', () => {
-      expect(helper.buildTaskWhere(7, query())).toEqual({
-        project: accessibleTo(7),
-        OR: [
-          { title: { contains: 'migration', mode: 'insensitive' } },
-          { description: { contains: 'migration', mode: 'insensitive' } },
-        ],
-      });
-    });
-
-    it('keeps the project scope regardless of the term', () => {
-      expect(helper.buildTaskWhere(7, query({ q: '%' })).project).toEqual(
-        accessibleTo(7),
-      );
-    });
   });
 
   describe('toPage', () => {
@@ -92,6 +26,12 @@ describe('SearchHelper', () => {
 
     it('reports no pages for a collection with no matches', () => {
       expect(helper.toPage([], 0, query()).meta.totalPages).toBe(0);
+    });
+
+    it('rounds a partial trailing page up', () => {
+      expect(
+        helper.toPage(['a'], 21, query({ limit: 10 })).meta.totalPages,
+      ).toBe(3);
     });
   });
 });

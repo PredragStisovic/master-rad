@@ -199,7 +199,7 @@ describe('SearchController (e2e)', () => {
     await app.close();
   });
 
-  it('GET /search matches projects and tasks case-insensitively', async () => {
+  it('GET /search matches projects and tasks regardless of case', async () => {
     const response = await search(ownerToken, 'q=e2e%20search%20alpha');
     const results = unwrap<SearchResultsEntity>(response);
 
@@ -286,14 +286,7 @@ describe('SearchController (e2e)', () => {
     expect(results.projects.meta.total).toBe(2);
   });
 
-  it('GET /search treats a lone % as a literal, not a wildcard', async () => {
-    const response = await search(ownerToken, 'q=%25%25');
-
-    expect(response.status).toBe(200);
-    expect(unwrap<SearchResultsEntity>(response).projects.data).toEqual([]);
-  });
-
-  it('GET /search still matches a literal percent inside a description', async () => {
+  it('GET /search matches a number token inside a description', async () => {
     const response = await search(ownerToken, 'q=100%25');
 
     expect(response.status).toBe(200);
@@ -302,6 +295,78 @@ describe('SearchController (e2e)', () => {
         (project) => project.id,
       ),
     ).toEqual([ownedProjectId]);
+  });
+
+  it('GET /search stems the term, so a different inflection still matches', async () => {
+    const response = await search(ownerToken, 'q=covering');
+
+    expect(response.status).toBe(200);
+    expect(
+      unwrap<SearchResultsEntity>(response).projects.data.map(
+        (project) => project.id,
+      ),
+    ).toEqual([ownedProjectId]);
+  });
+
+  it('GET /search combines words with AND, not OR', async () => {
+    const response = await search(ownerToken, 'q=e2e%20zzzznotpresent');
+    const results = unwrap<SearchResultsEntity>(response);
+
+    expect(response.status).toBe(200);
+    expect(results.projects.meta.total).toBe(0);
+    expect(results.tasks.meta.total).toBe(0);
+  });
+
+  it('GET /search honours a quoted phrase', async () => {
+    const response = await search(ownerToken, 'q=%22search%20alpha%22');
+
+    expect(response.status).toBe(200);
+    // Only the project whose name has the two words adjacent, so `beta` drops.
+    expect(
+      unwrap<SearchResultsEntity>(response).projects.data.map(
+        (project) => project.id,
+      ),
+    ).toEqual([ownedProjectId]);
+  });
+
+  it('GET /search honours a -excluded word', async () => {
+    const response = await search(ownerToken, 'q=e2e%20search%20-beta');
+
+    expect(response.status).toBe(200);
+    expect(
+      unwrap<SearchResultsEntity>(response).projects.data.map(
+        (project) => project.id,
+      ),
+    ).toEqual([ownedProjectId]);
+  });
+
+  it('GET /search ranks a title match above a description-only match', async () => {
+    const response = await search(ownerToken, 'q=e2e%20search%20alpha');
+    const tasks = unwrap<SearchResultsEntity>(response).tasks.data;
+
+    expect(response.status).toBe(200);
+    // The migration weights title/name as A and description as B.
+    expect(tasks.map((task) => task.title)).toEqual([
+      'E2e search ALPHA task',
+      'Unrelated title',
+    ]);
+  });
+
+  it('GET /search returns nothing for a term of only stopwords', async () => {
+    const response = await search(ownerToken, 'q=the');
+    const results = unwrap<SearchResultsEntity>(response);
+
+    expect(response.status).toBe(200);
+    expect(results.projects.meta.total).toBe(0);
+    expect(results.tasks.meta.total).toBe(0);
+  });
+
+  it('GET /search survives punctuation that is not a valid tsquery', async () => {
+    const response = await search(ownerToken, 'q=%27%3B%20DROP%20TABLE%20--');
+
+    // `to_tsquery` would raise a syntax error here; `websearch_to_tsquery` does not.
+    expect(response.status).toBe(200);
+    expect(unwrap<SearchResultsEntity>(response).projects.data).toEqual([]);
   });
 
   it('GET /search rejects a missing term', async () => {
