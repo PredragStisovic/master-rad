@@ -79,12 +79,14 @@ describe('AuthController /auth/logout (e2e)', () => {
 
     expect(logout.status).toBe(204);
 
+    // A revoked token presented to /auth/refresh now reads as reuse (401),
+    // where it used to be indistinguishable from an unknown token (404).
     const refresh = await request(app.getHttpServer())
       .post('/auth/refresh')
       .set('Authorization', `Bearer ${tokens.access_token}`)
       .send({ refreshToken: tokens.refresh_token });
 
-    expect(refresh.status).toBe(404);
+    expect(refresh.status).toBe(401);
   });
 
   it('POST /auth/logout rejects a refresh token that was already revoked', async () => {

@@ -15,6 +15,8 @@ const refreshToken: RefreshToken = {
   tokenHash: 'hash',
   expiresAt: inAnHour(),
   revokedAt: null,
+  rotatedAt: null,
+  familyId: 'family-1',
 };
 
 const user: UserEntity = {
@@ -28,6 +30,7 @@ const user: UserEntity = {
 const createRepositoryMock = () => ({
   saveTokenHash: jest.fn().mockResolvedValue(undefined),
   findToken: jest.fn().mockResolvedValue(refreshToken),
+  revokeTokenFamily: jest.fn().mockResolvedValue(undefined),
 });
 
 const createRolesRepositoryMock = () => ({
@@ -77,6 +80,26 @@ describe('AuthHelper', () => {
     });
   });
 
+  describe('createAndSaveRefreshToken', () => {
+    it('stores only the hash of the issued token, under the given family', async () => {
+      const token = await helper.createAndSaveRefreshToken(1, 'family-1');
+
+      expect(repository.saveTokenHash).toHaveBeenCalledWith({
+        tokenHash: helper.hashToken(token),
+        userId: 1,
+        expiresAt: expect.any(Date),
+        familyId: 'family-1',
+      });
+    });
+
+    it('issues a different token every time it is called', async () => {
+      const first = await helper.createAndSaveRefreshToken(1, 'family-1');
+      const second = await helper.createAndSaveRefreshToken(1, 'family-1');
+
+      expect(first).not.toEqual(second);
+    });
+  });
+
   describe('getActiveRefreshToken', () => {
     it('looks the token up by its hash for the given user', async () => {
       await expect(
@@ -87,17 +110,35 @@ describe('AuthHelper', () => {
         helper.hashToken('raw-token'),
         1,
       );
+      expect(repository.revokeTokenFamily).not.toHaveBeenCalled();
     });
 
-    it('rejects a token that is unknown or already revoked', async () => {
+    it('rejects a token it has never issued, with no family to invalidate', async () => {
       repository.findToken.mockResolvedValue(null);
 
       await expect(
         helper.getActiveRefreshToken('raw-token', 1),
       ).rejects.toThrow(UnauthorizedException);
+
+      expect(repository.revokeTokenFamily).not.toHaveBeenCalled();
     });
 
-    it('rejects an expired token', async () => {
+    it('invalidates the whole family when a revoked token is presented', async () => {
+      repository.findToken.mockResolvedValue({
+        ...refreshToken,
+        revokedAt: anHourAgo(),
+      });
+
+      await expect(
+        helper.getActiveRefreshToken('raw-token', 1),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(repository.revokeTokenFamily).toHaveBeenCalledWith(
+        refreshToken.familyId,
+      );
+    });
+
+    it('rejects an expired token and invalidates its family', async () => {
       repository.findToken.mockResolvedValue({
         ...refreshToken,
         expiresAt: anHourAgo(),
@@ -106,6 +147,10 @@ describe('AuthHelper', () => {
       await expect(
         helper.getActiveRefreshToken('raw-token', 1),
       ).rejects.toThrow(UnauthorizedException);
+
+      expect(repository.revokeTokenFamily).toHaveBeenCalledWith(
+        refreshToken.familyId,
+      );
     });
   });
 });

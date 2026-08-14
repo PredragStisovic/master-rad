@@ -43,8 +43,8 @@ export class AuthController {
 
   @Auth()
   @Post('refresh')
-  async refreshJwtToken(@Body() body, @Request() req) {
-    return await this.authService.refreshJwtToken(body, req.user);
+  async refreshJwtToken(@Body() body, @CurrentUser('userId') userId: number) {
+    return await this.authService.refreshJwtToken(body, userId);
   }
 
   @Auth()
