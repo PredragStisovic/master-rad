@@ -96,6 +96,9 @@ model Task {
   taskAttachments TaskAttachment[]
   notifications   Notification[]
 
+  @@index([projectId, id])
+  @@index([projectId, status, id])
+  @@index([projectId, assigneeId, id])
   @@index([assigneeId])
   @@map("tasks")
 }
