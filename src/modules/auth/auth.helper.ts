@@ -33,7 +33,10 @@ export class AuthHelper {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  async createAndSaveRefreshToken(userId: number): Promise<string> {
+  async createAndSaveRefreshToken(
+    userId: number,
+    familyId: string,
+  ): Promise<string> {
     const token = randomBytes(32).toString('base64');
     const hash = this.hashToken(token);
     const expiresAt = new Date();
@@ -42,7 +45,9 @@ export class AuthHelper {
       tokenHash: hash,
       userId,
       expiresAt,
+      familyId,
     });
+
     return token;
   }
 
@@ -55,7 +60,16 @@ export class AuthHelper {
       userId,
     );
 
-    if (!existingToken || existingToken.expiresAt < new Date()) {
+    if (
+      !existingToken ||
+      existingToken.expiresAt < new Date() ||
+      existingToken.revokedAt
+    ) {
+      if (existingToken) {
+        await this.refreshTokenRepository.revokeTokenFamily(
+          existingToken.familyId,
+        );
+      }
       throw new UnauthorizedException('Refresh token is not valid');
     }
 

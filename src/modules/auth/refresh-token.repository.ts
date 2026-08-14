@@ -23,7 +23,7 @@ export class RefreshTokenRepository {
     userId: number,
   ): Promise<RefreshToken | null> {
     return await this.prisma.refreshToken.findFirst({
-      where: { tokenHash: hashedToken, userId, revokedAt: null },
+      where: { tokenHash: hashedToken, userId },
     });
   }
 
@@ -34,6 +34,13 @@ export class RefreshTokenRepository {
   async revokeToken(id: number): Promise<void> {
     await this.prisma.refreshToken.update({
       where: { id },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async revokeTokenFamily(familyId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { familyId },
       data: { revokedAt: new Date() },
     });
   }

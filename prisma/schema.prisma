@@ -208,4 +208,8 @@ model RefreshToken {
   expiresAt DateTime @map("expires_at")
 
   revokedAt DateTime? @map("revoked_at")
+  rotatedAt DateTime? @map("rotated_at")
+  familyId  String   @map("family_id")
+
+  @@index([tokenHash, familyId])
 }

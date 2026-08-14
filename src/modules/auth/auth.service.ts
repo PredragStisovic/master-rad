@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { RegisterUserDto } from './dto/register-user.dto';
 import { UsersService } from '../users/users.service';
@@ -12,6 +13,7 @@ import { UserEntity } from '../users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { AuthHelper } from './auth.helper';
 import { RefreshTokenRepository } from './refresh-token.repository';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -31,6 +33,7 @@ export class AuthService {
       const payload = await this.authHelper.buildAccessTokenPayload(user);
       const refreshToken = await this.authHelper.createAndSaveRefreshToken(
         user.id,
+        randomUUID(),
       );
       return {
         access_token: this.jwtService.sign(payload),
@@ -41,11 +44,11 @@ export class AuthService {
     }
   }
 
-  async refreshJwtToken(body: any, user: UserEntity) {
+  async refreshJwtToken(body: any, userId: number) {
     const hashedToken = this.authHelper.hashToken(body.refreshToken);
     const existingToken = await this.refreshTokenRepository.findToken(
       hashedToken,
-      user.id,
+      userId,
     );
 
     if (!existingToken) {
@@ -54,12 +57,20 @@ export class AuthService {
     if (existingToken.expiresAt < new Date()) {
       throw new BadRequestException();
     }
+    if (existingToken.revokedAt) {
+      await this.refreshTokenRepository.revokeTokenFamily(
+        existingToken.familyId,
+      );
+      throw new UnauthorizedException('Refresh token is not valid');
+    }
 
-    await this.refreshTokenRepository.deleteToken(existingToken.id);
+    await this.refreshTokenRepository.revokeToken(existingToken.id);
     const newRefreshToken = await this.authHelper.createAndSaveRefreshToken(
-      user.id,
+      userId,
+      existingToken.familyId,
     );
 
+    const user = await this.userService.findOne(userId);
     const payload = await this.authHelper.buildAccessTokenPayload(user);
     return {
       access_token: this.jwtService.sign(payload),
