@@ -77,6 +77,25 @@ describe('TasksHelper', () => {
 
       expect(where).toEqual({ projectId: 1, status: TaskStatus.DONE });
     });
+
+    it('keeps a null assignee as a filter for the tasks nobody owns', () => {
+      const where = helper.buildWhere(1, buildQuery({ assigneeId: null }));
+
+      expect(where).toEqual({ projectId: 1, assigneeId: null });
+    });
+
+    it('combines the unassigned filter with the others', () => {
+      const where = helper.buildWhere(
+        1,
+        buildQuery({ status: TaskStatus.TODO, assigneeId: null }),
+      );
+
+      expect(where).toEqual({
+        projectId: 1,
+        status: TaskStatus.TODO,
+        assigneeId: null,
+      });
+    });
   });
 
   describe('buildOrderBy', () => {
