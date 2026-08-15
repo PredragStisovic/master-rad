@@ -267,6 +267,78 @@ describe('TasksController (e2e)', () => {
     expect(page.meta.total).toBe(1);
   });
 
+  it('GET /projects/:projectId/tasks filters down to the unassigned tasks', async () => {
+    const assigned = await createTask();
+    const unassigned = await createTask();
+
+    await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${assigned.id}/assignee`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ assigneeId: memberId })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?assigneeId=none`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const page = unwrap<PaginatedResult<TaskEntity>>(response);
+
+    expect(page.data.map((task) => task.id)).toEqual([unassigned.id]);
+    expect(page.meta.total).toBe(1);
+  });
+
+  it('GET /projects/:projectId/tasks combines the unassigned filter with a status', async () => {
+    const wanted = await createTask();
+    const otherStatus = await createTask();
+    const assigned = await createTask();
+
+    await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${wanted.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ status: 'IN_PROGRESS' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${assigned.id}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ status: 'IN_PROGRESS' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .patch(`/projects/${projectId}/tasks/${assigned.id}/assignee`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ assigneeId: memberId })
+      .expect(200);
+
+    const response = await request(app.getHttpServer())
+      .get(`/projects/${projectId}/tasks?status=IN_PROGRESS&assigneeId=none`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const page = unwrap<PaginatedResult<TaskEntity>>(response);
+
+    expect(page.data.map((task) => task.id)).toEqual([wanted.id]);
+    expect(page.data.map((task) => task.id)).not.toContain(otherStatus.id);
+  });
+
+  it('GET /projects/:projectId/tasks treats an empty filter box as no filter', async () => {
+    const first = await createTask();
+    const second = await createTask();
+
+    const response = await request(app.getHttpServer())
+      .get(
+        `/projects/${projectId}/tasks?status=&priority=&assigneeId=&sortBy=&sortOrder=`,
+      )
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    const page = unwrap<PaginatedResult<TaskEntity>>(response);
+
+    expect(page.data.map((task) => task.id)).toEqual([first.id, second.id]);
+    expect(page.meta.total).toBe(2);
+  });
+
   it('GET /projects/:projectId/tasks sorts by the requested column and direction', async () => {
     await createTask({ title: 'Bravo' });
     await createTask({ title: 'Alpha' });

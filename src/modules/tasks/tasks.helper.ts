@@ -18,6 +18,9 @@ export class TasksHelper {
       where.priority = query.priority;
     }
 
+    // Only `undefined` drops the filter. `null` is a filter — the DTO produces
+    // it from `assigneeId=none`, and Prisma turns it into `IS NULL`, which is
+    // the one way to ask for the tasks nobody owns.
     if (query.assigneeId !== undefined) {
       where.assigneeId = query.assigneeId;
     }

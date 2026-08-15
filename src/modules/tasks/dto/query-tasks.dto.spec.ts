@@ -1,7 +1,12 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { TaskPriority, TaskStatus } from '../../../../generated/prisma/client';
-import { QueryTasksDto, SortOrder, TaskSortBy } from './query-tasks.dto';
+import {
+  QueryTasksDto,
+  SortOrder,
+  TaskSortBy,
+  UNASSIGNED,
+} from './query-tasks.dto';
 
 const failingProperties = async (
   payload: Record<string, unknown>,
@@ -97,5 +102,84 @@ describe('QueryTasksDto', () => {
     await expect(failingProperties({ sortOrder: 'sideways' })).resolves.toEqual(
       ['sortOrder'],
     );
+  });
+
+  describe('blank query-string values', () => {
+    const blankQuery = {
+      status: '',
+      priority: '',
+      assigneeId: '',
+      sortBy: '',
+      sortOrder: '',
+    };
+
+    it('accepts a filter form submitted with every box left empty', async () => {
+      await expect(failingProperties(blankQuery)).resolves.toEqual([]);
+    });
+
+    it('reads a blank filter as absent rather than as a value', () => {
+      const dto = plainToInstance(QueryTasksDto, blankQuery);
+
+      expect({
+        status: dto.status,
+        priority: dto.priority,
+        assigneeId: dto.assigneeId,
+      }).toEqual({
+        status: undefined,
+        priority: undefined,
+        assigneeId: undefined,
+      });
+    });
+
+    it('keeps the sort defaults instead of blanking them out', () => {
+      const dto = plainToInstance(QueryTasksDto, blankQuery);
+
+      expect({ sortBy: dto.sortBy, sortOrder: dto.sortOrder }).toEqual({
+        sortBy: TaskSortBy.ID,
+        sortOrder: SortOrder.ASC,
+      });
+    });
+  });
+
+  describe('the unassigned sentinel', () => {
+    it(`turns "${UNASSIGNED}" into a null assignee filter`, () => {
+      const dto = plainToInstance(QueryTasksDto, { assigneeId: UNASSIGNED });
+
+      expect(dto.assigneeId).toBeNull();
+    });
+
+    it('accepts the sentinel as a valid assignee filter', async () => {
+      await expect(
+        failingProperties({ assigneeId: UNASSIGNED }),
+      ).resolves.toEqual([]);
+    });
+
+    it('combines with the other filters', async () => {
+      const payload = {
+        status: TaskStatus.DONE,
+        priority: '',
+        assigneeId: UNASSIGNED,
+      };
+
+      await expect(failingProperties(payload)).resolves.toEqual([]);
+
+      const dto = plainToInstance(QueryTasksDto, payload);
+
+      expect({
+        status: dto.status,
+        priority: dto.priority,
+        assigneeId: dto.assigneeId,
+      }).toEqual({
+        status: TaskStatus.DONE,
+        priority: undefined,
+        assigneeId: null,
+      });
+    });
+
+    it('still rejects any other non-numeric assignee', async () => {
+      await expect(
+        failingProperties({ assigneeId: 'nobody' }),
+      ).resolves.toEqual(['assigneeId']);
+    });
   });
 });
