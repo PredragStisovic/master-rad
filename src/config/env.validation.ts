@@ -16,4 +16,10 @@ export const envValidationSchema = Joi.object({
     .empty('')
     .optional(),
   CACHE_TTL_MS: Joi.number().integer().min(0).empty('').default(30_000),
+  // Rate limit applied to the auth endpoints: `AUTH_THROTTLE_LIMIT` requests
+  // per client IP within `AUTH_THROTTLE_TTL_MS`. The defaults leave room for a
+  // person fumbling a password (and for a browser refreshing a few tabs at
+  // once) while cutting credential stuffing down to a trickle.
+  AUTH_THROTTLE_TTL_MS: Joi.number().integer().min(1).empty('').default(60_000),
+  AUTH_THROTTLE_LIMIT: Joi.number().integer().min(1).empty('').default(10),
 });

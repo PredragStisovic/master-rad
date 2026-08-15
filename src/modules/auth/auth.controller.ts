@@ -12,8 +12,11 @@ import {
   ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiTooManyRequestsResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { SkipThrottle, ThrottlerGuard } from '@nestjs/throttler';
+import { AUTH_THROTTLER } from '../../config/throttler.config';
 import { AuditAction } from '../../../generated/prisma/client';
 import { AuditActionType } from '../../common/decorators/audit-action.decorator';
 import { AuthService } from './auth.service';
@@ -25,6 +28,14 @@ import { Auth } from './decorators/auth.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UserEntity } from '../users/entities/user.entity';
 
+/**
+ * Rate-limited as a whole: every route here either accepts a credential or
+ * mints one, so the cheapest defence is to cap how often a single client may
+ * ask. `@SkipThrottle` marks the exceptions rather than each route opting in,
+ * so a route added later is limited by default.
+ */
+@UseGuards(ThrottlerGuard)
+@ApiTooManyRequestsResponse({ description: 'Auth rate limit exceeded' })
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -62,6 +73,9 @@ export class AuthController {
     return this.authService.logout(userId, dto);
   }
 
+  // A read a signed-in client may poll; it carries no credential to guess, so
+  // limiting it would only get in the way of legitimate traffic.
+  @SkipThrottle({ [AUTH_THROTTLER]: true })
   @Auth()
   @Get('me')
   @ApiOperation({ summary: 'Get the currently authenticated user' })

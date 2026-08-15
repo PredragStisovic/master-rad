@@ -5,6 +5,8 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { cacheConfig } from './config/cache.config';
 import { envValidationSchema } from './config/env.validation';
+import { throttlerConfig } from './config/throttler.config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { CommonModule } from './common/common.module';
 import { UsersModule } from './modules/users/users.module';
@@ -32,6 +34,10 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       isGlobal: true,
       inject: [ConfigService],
       useFactory: cacheConfig,
+    }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: throttlerConfig,
     }),
     PrismaModule,
     CommonModule,
