@@ -14,6 +14,15 @@ python3 docs/thesis-tools/build_categories.py docs/thesis-tools/pr-key.json
 
 # 3. (opciono) HTML pregled ključa
 python3 docs/thesis-tools/build_page.py docs/thesis-tools/pr-key.json /tmp/ledger.html
+
+# --- posle zamrzavanja istorije (git tag freeze/v1) ---
+
+# 4. napravi 60 ulaza za LLM iz zamrznute istorije (v. §10.1)
+python3 docs/thesis-tools/extract_eval_inputs.py
+
+# 5. šablon za predikcije, pa ocenjivanje
+python3 docs/thesis-tools/score.py --template predictions.json
+python3 docs/thesis-tools/score.py predictions.json --out docs/RESULTS.md
 ```
 
 ## Šta koja radi
@@ -24,6 +33,8 @@ python3 docs/thesis-tools/build_page.py docs/thesis-tools/pr-key.json /tmp/ledge
 | `build_categories.py` | Piše `docs/CATEGORIES.md`. **Ne uništava ručni rad** — postojeće vrednosti iz kolone `Kategorija` imaju prednost nad svim ostalim. Zbir se računa iz tabele, pa dve tabele ne mogu da se raziđu. |
 | `build_page.py`       | HTML pregled istog ključa, za čitanje.                                                                                                          |
 | `pr-key.json`         | Mašinski čitljiv ključ (izlaz `join.py`).                                                                                                       |
+| `extract_eval_inputs.py` | Iz `freeze/v1` pravi `eval-input/PR-<n>/{meta.json,changes.diff}` po pravilu iz §10.1. Skenira svaki generisani fajl na oznake rizika i **vraća izlazni kod 1** ako ijedna prođe. `manifest.json` (spoj sa ključem) se modelu **ne daje**. |
+| `score.py`            | Poredi predikcije sa ključem: tačnost, **baseline**, Cohen's κ, matrica konfuzije, recall po nivou, tačnost po kategoriji, tabela po PR-u. |
 
 ## Napomene
 

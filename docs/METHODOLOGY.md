@@ -125,15 +125,16 @@ security / authz / migracijama.
 
 | Rizik  | Ciljni udeo |  Realizovano | Gde živi                                                                                                                |
 | ------ | ----------: | -----------: | ----------------------------------------------------------------------------------------------------------------------- |
-| Low    |        ~40% | 42% (25/60) | CRUD, DTO, paginacija, izveštaji, CI konfiguracija                                                                      |
-| Medium |        ~45% | 47% (28/60) | migracije, refaktorisanja, keširanje, cross-cutting, search                                                             |
-| High   |        ~15% | 12% (7/60)  | login/JWT, refresh tokeni, roles/permissions guard, project-access guard, refresh hardening, permission-system redesign |
+| Low    |        ~40% | 37% (22/60) | CRUD, DTO, paginacija, izveštaji, CI konfiguracija                                                                      |
+| Medium |        ~45% | 50% (30/60) | migracije, refaktorisanja, keširanje, cross-cutting, search                                                             |
+| High   |        ~15% | 13% (8/60)  | login/JWT, refresh tokeni, roles/permissions guard, project-access guard, refresh hardening, permission-system redesign |
 
-Low i Medium su realizovani praktično po planu. High je nešto ispod cilja iz jednog razloga:
-`refactor/permission-system` (BL#50) — jedan od pre-registrovanih **H** redova — nije bio potreban
-jer je `resource:action` format usvojen odmah (v. Dnevnik odstupanja, 2026-08-15). Sedam
-realizovanih **H** PR-ova živi u Security (6) i DB migration (1) — nijedan **H** nije klasifikovan
-kao Feature, što je u skladu sa §6 („rizik koncentrisan u security / authz / migracijama").
+Sve tri oznake su realizovane blizu cilja (odstupanje ≤ 5 procentnih poena). High je nešto ispod
+cilja iz jednog razloga: `refactor/permission-system` (BL#50) — jedan od pre-registrovanih **H**
+redova — nije bio potreban jer je `resource:action` format usvojen odmah (v. Dnevnik odstupanja,
+2026-08-15). Osam realizovanih **H** PR-ova živi u Security (6) i DB migration (2) — nijedan **H**
+nije klasifikovan kao Feature, što je u skladu sa §6 („rizik koncentrisan u security / authz /
+migracijama").
 
 _High_ PR-ovi su ključni „svi gejtovi zeleni, a i dalje rizično" slučajevi koje LLM treba da
 prepozna. Puna po-PR razrada je u [`BACKLOG.md`](BACKLOG.md).
@@ -229,20 +230,36 @@ U ovom repozitorijumu ključ postoji na **tri** mesta, i sva tri moraju biti izv
 | commit poruke                                                         | 19 PR-ova nosi `Category:` / `Risk rationale:` u telu commit-a                                    |
 | `docs/` unutar samog diff-a                                           | 14 PR-ova menja `docs/`; kod #55 i #58 dodati red Dnevnika odstupanja doslovno sadrži oznaku rizika |
 
-Zato je ulaz za ocenjivanje **isključivo diff, bez `docs/`**:
+Zato je ulaz za ocenjivanje **isključivo diff, bez `docs/` i bez `package-lock.json`**:
 
 ```bash
-git diff <merge>^1...<merge>^2 -- . ':(exclude)docs/'
+git diff <merge>^1...<merge>^2 -- . ':(exclude)docs/' ':(exclude)package-lock.json'
 ```
+
+`docs/` se izostavlja zbog kontaminacije (gore). `package-lock.json` se izostavlja iz drugog
+razloga — mašinski je generisan i nijedan recenzent ga ne čita, a činio je **29% ukupnog teksta
+diff-ova** (361 KB od 1,23 MB, u 14 PR-ova); kod PR #2 i #22 preko 90% diff-a. Njegovo
+zadržavanje bi kod tih PR-ova potrošilo gotovo ceo kontekst modela na promene verzija zavisnosti.
+Izostavljanjem korpus pada na ~866 KB i po-PR ulazi postaju uporedivi po veličini.
 
 Uz to: LLM **ne dobija** checkout repozitorijuma, pristup datotečnom sistemu, niti `git log`
 (commit poruke). Dozvoljeni su još samo naziv grane i CI metrike za taj PR — oba vidi i ljudski
 recenzent, a nijedno ne nosi L/M/H oznaku.
 
-**Posledica koju treba prijaviti u radu:** izostavljanjem `docs/` LLM kod 14 PR-ova ocenjuje
-neznatno manji diff nego što je merge-ovan. Kod 12 je reč o uzgrednoj izmeni (čekiranje reda u
-backlog-u); kod #55 i #58 red Dnevnika odstupanja jeste deo tog PR-a. Sužavanje je svesna cena
-— alternativa je da model pročita tačan odgovor.
+**Posledice koje treba prijaviti u radu:**
+
+1. Izostavljanjem `docs/` LLM kod 14 PR-ova ocenjuje neznatno manji diff nego što je merge-ovan.
+   Kod 12 je reč o uzgrednoj izmeni (čekiranje reda u backlog-u); kod #55 i #58 red Dnevnika
+   odstupanja jeste deo tog PR-a. Sužavanje je svesna cena — alternativa je da model pročita
+   tačan odgovor.
+2. PR #13 (`fix-package-discrepancy`) posle oba izuzimanja ostaje **prazan** — bio je isključivo
+   izmena `package-lock.json`-a. Zato se ne ocenjuje. Njegov red u ključu (`13+14`) i dalje je
+   pokriven, jer PR #14 nosi suštinsku izmenu iste grane (v. Dnevnik odstupanja, 2026-08-15).
+   Ukupno se ocenjuje **60 PR-ova naspram 60 redova ključa** — odnos 1:1.
+
+Sprovođenje ovih pravila nije prepušteno disciplini: `docs/thesis-tools/extract_eval_inputs.py`
+generiše ulaze iz `freeze/v1`, skenira svaki generisani fajl na oznake rizika i **prekida sa
+greškom** ako ijedna prođe.
 
 ---
 
@@ -291,6 +308,31 @@ Beleži razlike između plana i realizacije. Popunjava se u hodu. Primeri format
 > **Napomena o numeraciji:** brojevi u koloni „Planirano" su redovi iz [`BACKLOG.md`](BACKLOG.md)
 > (`BL#`), a oni se **ne poklapaju** sa GitHub PR brojevima — npr. BL#44 je merge-ovan kao PR #55,
 > BL#47 kao PR #58, BL#53 kao PR #33. Spajanje ta dva niza radi se isključivo **po imenu grane**.
+
+### Revizije pre-registrovanih oznaka rizika
+
+Ključ je pre-registrovan (§8), pa je svaka naknadna izmena `Risk` kolone u `BACKLOG.md`
+**odstupanje koje se mora evidentirati** — inače se ne razlikuje od podešavanja ključa prema
+rezultatima. Tabela ispod je potpuna lista takvih izmena; sve ostalo u koloni `Risk` je
+nepromenjeno od 2026-07-22 i to je proverljivo jednom komandom:
+
+```bash
+git log -p --follow -- docs/BACKLOG.md | grep -E '^[+-]\| [0-9]+ '
+```
+
+| Datum      | BL# / grana                                            | Iz  | U   | Obrazloženje                                                                                                                                                                                                                                                          |
+| ---------- | ------------------------------------------------------ | :-: | :-: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-15 | BL#45 `performance/search-index` (PR #56)              | M→H |  H  | Razrešenje pre-registrovanog **raspona**, ne revizija ocene — v. red od 2026-08-15 u tabeli iznad                                                                                                                                                                       |
+| 2026-08-16 | BL#58 `feature/create-refresh-token` (PR #18)          |  L  |  H  | Prvobitna ocena data je za „samo migracija, mala tabela". PR uvodi tabelu za refresh tokene — nosač celog mehanizma sesija — pa po kriterijumu iz §6 („rizik koncentrisan u security / authz / migracijama") pada u **H**: greška u schemi ovde direktno ruši autentikaciju |
+| 2026-08-16 | BL#62 `bugfix/jwt-strategy-wiring` (PR #17)            |  L  |  M  | Nije kozmetički fix: registruje `JwtStrategy` u `AuthModule` i uvodi `JWT_SECRET` u CI okruženje, dakle dira putanju autentikacije i konfiguraciju tajni — **M** je doslednije sa ostalim authz-susednim PR-ovima                                                        |
+| 2026-08-16 | BL#63 `feature/adding-auth-guards-and-authorization` (PR #25) |  L  |  M  | Obim je potcenjen pri planiranju: `@Auth()` + `@RequirePermissions` su naknadno povezani na **sve** kontrolere, pa je promena cross-cutting po authz-u, a ne lokalna                                                                                                     |
+
+**Zašto ovo ne kvari eksperiment:** sve tri revizije od 2026-08-16 izvršene su **pre nego što je
+ijedna LLM predikcija postojala** — `predictions.json` u tom trenutku nije bio generisan, pa ključ
+nije mogao biti podešavan prema rezultatima. Redosled je dokaziv iz istorije: izmena `BACKLOG.md`
+prethodi commit-u koji uvodi bilo koji fajl sa predikcijama. Revizije su, uz to, sve u smeru
+**povećanja** rizika (L→M, L→H), što otežava zadatak modelu — nijedna ne pomera ključ ka lakšem
+rezultatu.
 
 ### Zbirno odstupanje (popuniti na kraju)
 

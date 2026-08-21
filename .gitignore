@@ -65,3 +65,8 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Files written by LocalStorageService at runtime
 /uploads/
+
+# Derived LLM evaluation inputs (regenerate: docs/thesis-tools/extract_eval_inputs.py)
+eval-input/
+
+/thesis-tools/*.json

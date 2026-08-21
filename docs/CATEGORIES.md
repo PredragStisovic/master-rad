@@ -30,15 +30,15 @@ Kolona `Signali` je samo mehanički trag (koje su datoteke dirane), kao podsetni
 | 13+14 | `fix-package-discrepancy` | 60 | L | — | Bug fix |
 | 15 | `feature/add-default-role` | 59 | M | authz | DB migration |
 | 16 | `ci/track-prisma-config` | 61 | L | — | Infrastructure / CI |
-| 17 | `bugfix/jwt-strategy-wiring` | 62 | L | authz, ci | Bug fix |
-| 18 | `feature/create-refresh-token` | 58 | L | migration | DB migration |
+| 17 | `bugfix/jwt-strategy-wiring` | 62 | M | authz, ci | Bug fix |
+| 18 | `feature/create-refresh-token` | 58 | H | migration | DB migration |
 | 19 | `feature/current-user-decorator` | 14 | L | authz | Feature |
 | 20 | `feature/logout-token-revocation` | 15 | M | authz | Refactoring |
 | 21 | `feature/roles-crud` | 16 | L | authz | Feature |
 | 22 | `feature/permissions-seed` | 17 | M | authz | DB migration |
 | 23 | `feature/roles-guard` | 18 | H | authz | Security |
 | 24 | `feature/permissions-guard` | 19 | H | authz | Security |
-| 25 | `feature/adding-auth-guards-and-authorization` | 63 | L | authz | Refactoring |
+| 25 | `feature/adding-auth-guards-and-authorization` | 63 | M | authz | Refactoring |
 | 26 | `fix/logic-for-permission-guard-and-e2e-tests` | 64 | M | authz | Bug fix |
 | 27 | `feature/assign-roles-to-users` | 20 | M | — | Feature |
 | 28 | `feature/projects-crud` | 22 | L | authz | Feature |

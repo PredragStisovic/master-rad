@@ -98,16 +98,16 @@ Legend — **Risk** = expected _merge_ risk (the thesis label): **L** / **M** / 
 
 ## Phase 8 — Hardening & optimization (rich Medium/High samples)
 
-| #   | Branch                           | Goal                                           | Risk  | Cx  | Size | Deps  | Own |
-| --- | -------------------------------- | ---------------------------------------------- | ----- | --- | ---- | ----- | --- |
+| #   | Branch                           | Goal                                           | Risk  | Cx  | Size | Deps     | Own |
+| --- | -------------------------------- | ---------------------------------------------- | ----- | --- | ---- | -------- | --- |
 | 44  | refactor/task-scope-guards       | Deduplicate project/task scope guard clauses   | M     | ◐   | M    | 24,27,43 | U   |
-| 45  | performance/search-index         | GIN/tsvector full-text index + migration       | M→H   | ●   | M    | 41    | U   |
-| 46  | performance/caching              | cache-manager/Redis on reports+search          | M     | ◐   | M    | 41,42 | C   |
-| 47  | performance/query-optimization   | Kill N+1, narrow selects on task list          | M     | ◐   | M    | 30    | U   |
-| 48  | security/refresh-token-hardening | Reuse detection + token-family invalidation    | **H** | ●   | M    | 13    | U   |
-| 49  | security/rate-limiting           | Throttler on auth endpoints                    | M     | ◐   | S    | 12    | C   |
-| 50  | refactor/permission-system       | Redesign to `resource:action` + data migration | **H** | ●   | L    | 19,25 | U   |
-| 51  | bugfix/task-filter               | Fix combined/null-assignee filter edge case    | L     | ○   | S    | 30    | C   |
+| 45  | performance/search-index         | GIN/tsvector full-text index + migration       | M→H   | ●   | M    | 41       | U   |
+| 46  | performance/caching              | cache-manager/Redis on reports+search          | M     | ◐   | M    | 41,42    | C   |
+| 47  | performance/query-optimization   | Kill N+1, narrow selects on task list          | M     | ◐   | M    | 30       | U   |
+| 48  | security/refresh-token-hardening | Reuse detection + token-family invalidation    | **H** | ●   | M    | 13       | U   |
+| 49  | security/rate-limiting           | Throttler on auth endpoints                    | M     | ◐   | S    | 12       | C   |
+| 50  | refactor/permission-system       | Redesign to `resource:action` + data migration | **H** | ●   | L    | 19,25    | U   |
+| 51  | bugfix/task-filter               | Fix combined/null-assignee filter edge case    | L     | ○   | S    | 30       | C   |
 
 ## Phase 9 — Test / CI readiness (LLM stage added later)
 
@@ -129,12 +129,12 @@ Additional things not listed originally in backlog. It includes bugfixes or glos
 
 | #   | Branch                                       | Goal                                                                          | Risk | Cx  | Size | Deps  | Own |
 | --- | -------------------------------------------- | ----------------------------------------------------------------------------- | ---- | --- | ---- | ----- | --- |
-| 58  | feature/create-refresh-token                 | Create a migration for refresh token                                          | L    | ○   | S    | 13    | U   |
+| 58  | feature/create-refresh-token                 | Create a migration for refresh token                                          | H    | ○   | S    | 13    | U   |
 | 59  | feature/add-default-role                     | Add default role                                                              | M    | ○   | S    |       | U   |
 | 60  | fix-package-discrepancy                      | Make the package.json and package-lock.json synced                            | L    | ◐   | L    |       | U   |
 | 61  | ci/track-prisma-config                       | Un-ignore `prisma.config.ts` so CI has a datasource                           | L    | ○   | S    | 55    | C   |
-| 62  | bugfix/jwt-strategy-wiring                   | Register JwtStrategy in AuthModule + add JWT_SECRET to CI env                 | L    | ○   | S    | 12,55 | C   |
-| 63  | feature/adding-auth-guards-and-authorization | `@Auth()` composed decorator + `@RequirePermissions` wired to all controllers | L    | ◐   | S    | 19    | C   |
+| 62  | bugfix/jwt-strategy-wiring                   | Register JwtStrategy in AuthModule + add JWT_SECRET to CI env                 | M    | ○   | S    | 12,55 | C   |
+| 63  | feature/adding-auth-guards-and-authorization | `@Auth()` composed decorator + `@RequirePermissions` wired to all controllers | M    | ◐   | S    | 19    | C   |
 | 64  | fix/logic-for-permission-guard-and-e2e-tests | Make the permission guard fetch the permissions from db, also fix for e2e     | M    | ◐   | M    |       | U   |
 | 65  | ci/sonar-coverage-exclusions                 | Align `sonar.coverage.exclusions` with Jest `collectCoverageFrom`             | L    | ○   | S    | 53,56 | C   |
 | 66  | fix/run-prisma-format                        | Fix the issues with prisma                                                    | L    | ○   | S    |       | U   |
