@@ -1,0 +1,228 @@
+name: LLM Risk Assessment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'PR number to assess'
+        required: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: llm-risk-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  assess:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DISPATCH_PR: ${{ inputs.pr }}
+          EVENT_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_TITLE: ${{ github.event.pull_request.title }}
+          EVENT_BRANCH: ${{ github.event.pull_request.head.ref }}
+          EVENT_BASE: ${{ github.event.pull_request.base.sha }}
+          EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            gh pr view "$DISPATCH_PR" --repo "$GITHUB_REPOSITORY" \
+              --json number,title,headRefName,baseRefOid,headRefOid > pr.json
+            NUMBER=$(jq -r .number      pr.json)
+            TITLE=$(jq  -r .title       pr.json)
+            BRANCH=$(jq -r .headRefName pr.json)
+            BASE=$(jq   -r .baseRefOid  pr.json)
+            HEAD=$(jq   -r .headRefOid  pr.json)
+            git fetch --no-tags origin "$BASE" "$HEAD"
+          else
+            NUMBER="$EVENT_NUMBER"
+            TITLE="$EVENT_TITLE"
+            BRANCH="$EVENT_BRANCH"
+            BASE="$EVENT_BASE"
+            HEAD="$EVENT_HEAD"
+          fi
+          {
+            echo "number=$NUMBER"
+            echo "branch=$BRANCH"
+            echo "base=$BASE"
+            echo "head=$HEAD"
+            echo "title<<PR_TITLE_EOF"
+            echo "$TITLE"
+            echo "PR_TITLE_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build evaluation input
+        id: input
+        env:
+          BASE: ${{ steps.pr.outputs.base }}
+          HEAD: ${{ steps.pr.outputs.head }}
+          BRANCH: ${{ steps.pr.outputs.branch }}
+          TITLE: ${{ steps.pr.outputs.title }}
+          MAX_BYTES: '200000'
+        run: |
+          set -euo pipefail
+          EXCLUDE=(":(exclude)docs/" ":(exclude)package-lock.json")
+          git diff "$BASE...$HEAD" -- . "${EXCLUDE[@]}" > changes.diff
+          NUMSTAT=$(git diff --numstat "$BASE...$HEAD" -- . "${EXCLUDE[@]}")
+
+          if [ ! -s changes.diff ]; then
+            echo "Diff empty after exclusions — nothing to assess."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Same pattern like LEAK_RE in docs/thesis-tools/extract_eval_inputs.py.
+          if grep -nEi 'Risk:[[:space:]]*[LMH]([^A-Za-z]|$)|Risk rationale|Rizik ostaje|^\+.*Category:[[:space:]]*(Feature|Security|Bug fix|Refactoring|Performance|DB migration|Infrastructure)' changes.diff; then
+            echo "::error::Ground-truth risk label found in the evaluation input — refusing to send it to the model."
+            exit 1
+          fi
+
+          FILES=$(printf '%s\n' "$NUMSTAT" | grep -c . || true)
+          INS=$(printf '%s\n' "$NUMSTAT" | awk -F'\t' '$1 ~ /^[0-9]+$/ {s+=$1} END {print s+0}')
+          DEL=$(printf '%s\n' "$NUMSTAT" | awk -F'\t' '$2 ~ /^[0-9]+$/ {s+=$2} END {print s+0}')
+
+          BYTES=$(wc -c < changes.diff)
+          TRUNCATED="no"
+          if [ "$BYTES" -gt "$MAX_BYTES" ]; then
+            head -c "$MAX_BYTES" changes.diff > diff.trimmed
+            printf '\n[... diff truncated at %s bytes of %s ...]\n' "$MAX_BYTES" "$BYTES" >> diff.trimmed
+            mv diff.trimmed changes.diff
+            TRUNCATED="yes"
+          fi
+
+          {
+            cat <<'HEADER'
+          You are reviewing a single pull request in a NestJS + Prisma/PostgreSQL REST API
+          (layered Controller -> Service -> Repository, guards for auth/roles/permissions).
+
+          Assess the MERGE RISK of this pull request: how likely it is that merging it causes a
+          production incident, and how costly that incident would be. Judge only from the material
+          below — you have no repository access and no other context.
+
+          Use these levels:
+            L (Low)    — additive or isolated change; failure is contained and obvious
+                         (CRUD endpoints, DTOs, pagination, reports, CI configuration)
+            M (Medium) — touches shared or cross-cutting code, or a routine migration; failure
+                         is recoverable but not confined to one endpoint (refactorings, caching,
+                         search, query/index changes, cross-module helpers)
+            H (High)   — authentication, authorization, session/token handling, or a schema
+                         migration that carries data; a defect breaks access control or data
+                         integrity for everyone, and all CI gates can still be green
+
+          Weigh: what the change touches (auth/authz, migrations, guards, public API surface,
+          configuration), blast radius, reversibility, and whether the changed code is covered
+          by the tests in the diff.
+
+          Also assign the primary semantic category — by meaning, not by branch prefix — from:
+          Feature, Bug fix, Refactoring, Performance, Security, DB migration, Infrastructure / CI.
+
+          Answer with the JSON object required by the schema. Write `rationale` as 2-4 sentences
+          naming the concrete files or mechanisms that drive the level, in English.
+          HEADER
+            echo
+            echo "<pull-request>"
+            echo "branch: $BRANCH"
+            echo "title: $TITLE"
+            echo "files changed: $FILES (+$INS/-$DEL)"
+            echo "diff truncated: $TRUNCATED"
+            echo "</pull-request>"
+            echo
+            echo "<diff>"
+            cat changes.diff
+            echo "</diff>"
+          } > prompt.txt
+
+          {
+            echo 'RISK_PROMPT<<CLAUDE_PROMPT_EOF'
+            cat prompt.txt
+            echo 'CLAUDE_PROMPT_EOF'
+          } >> "$GITHUB_ENV"
+
+          {
+            echo "skip=false"
+            echo "files=$FILES"
+            echo "insertions=$INS"
+            echo "deletions=$DEL"
+            echo "truncated=$TRUNCATED"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Assess risk
+        id: assess
+        if: steps.input.outputs.skip != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: ${{ env.RISK_PROMPT }}
+          claude_args: |
+            --model claude-opus-5
+            --max-turns 3
+            --tools ""
+            --json-schema '{"type":"object","additionalProperties":false,"required":["risk","score","category","rationale"],"properties":{"risk":{"type":"string","enum":["L","M","H"]},"score":{"type":"integer","minimum":1,"maximum":10},"category":{"type":"string","enum":["Feature","Bug fix","Refactoring","Performance","Security","DB migration","Infrastructure / CI"]},"rationale":{"type":"string"}}}'
+
+      - name: Post assessment
+        if: steps.input.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ steps.pr.outputs.number }}
+          OUTPUT: ${{ steps.assess.outputs.structured_output }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$OUTPUT" | jq -e '.risk and .score and .category and .rationale' > /dev/null
+
+          jq -n --argjson a "$OUTPUT" \
+            --arg pr "$PR" --arg sha '${{ steps.pr.outputs.head }}' \
+            --arg branch '${{ steps.pr.outputs.branch }}' --arg model "claude-opus-5" \
+            --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --argjson files '${{ steps.input.outputs.files }}' \
+            --argjson ins '${{ steps.input.outputs.insertions }}' \
+            --argjson del '${{ steps.input.outputs.deletions }}' \
+            --arg truncated '${{ steps.input.outputs.truncated }}' \
+            '{pr: ($pr|tonumber), branch: $branch, sha: $sha, model: $model, run: $run,
+              files_changed: $files, insertions: $ins, deletions: $del,
+              diff_truncated: ($truncated == "yes")} + $a' > risk.json
+
+          RISK=$(jq -r .risk risk.json)
+          case "$RISK" in
+            L) LABEL="🟢 LOW" ;;
+            M) LABEL="🟡 MEDIUM" ;;
+            H) LABEL="🔴 HIGH" ;;
+          esac
+
+          {
+            echo "### LLM procena rizika — $LABEL ($(jq -r .score risk.json)/10)"
+            echo
+            echo "**Kategorija:** $(jq -r .category risk.json)"
+            echo
+            jq -r .rationale risk.json
+            echo
+            echo "<sub>Model: claude-opus-5 · ulaz: diff bez \`docs/\` i \`package-lock.json\`"
+            echo "($(jq -r .files_changed risk.json) fajlova, +$(jq -r .insertions risk.json)/-$(jq -r .deletions risk.json))"
+            echo "· instrument teze, savetodavno — **ne blokira merge** (METHODOLOGY §10.3)</sub>"
+          } > comment.md
+
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment.md
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload prediction
+        if: steps.input.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-risk-pr-${{ steps.pr.outputs.number }}
+          path: risk.json
+          retention-days: 90
