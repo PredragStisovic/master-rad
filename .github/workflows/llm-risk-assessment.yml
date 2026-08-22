@@ -87,7 +87,9 @@ jobs:
           fi
 
           # Same pattern like LEAK_RE in docs/thesis-tools/extract_eval_inputs.py.
-          if grep -nEi 'Risk:[[:space:]]*[LMH]([^A-Za-z]|$)|Risk rationale|Rizik ostaje|^\+.*Category:[[:space:]]*(Feature|Security|Bug fix|Refactoring|Performance|DB migration|Infrastructure)' changes.diff; then
+          # The bracketed letters match the same text but keep the pattern from matching
+          # itself when this workflow file is part of the assessed diff.
+          if grep -nEi 'Risk:[[:space:]]*[LMH]([^A-Za-z]|$)|Risk rat[i]onale|Rizik osta[j]e|^\+.*Category:[[:space:]]*(Feature|Security|Bug fix|Refactoring|Performance|DB migration|Infrastructure)' changes.diff; then
             echo "::error::Ground-truth risk label found in the evaluation input — refusing to send it to the model."
             exit 1
           fi
