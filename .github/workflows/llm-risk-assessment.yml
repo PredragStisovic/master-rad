@@ -174,7 +174,8 @@ jobs:
           claude_args: |
             --model claude-opus-5
             --max-turns 3
-            --tools ""
+            --setting-sources user
+            --tools=""
             --json-schema '{"type":"object","additionalProperties":false,"required":["risk","score","category","rationale"],"properties":{"risk":{"type":"string","enum":["L","M","H"]},"score":{"type":"integer","minimum":1,"maximum":10},"category":{"type":"string","enum":["Feature","Bug fix","Refactoring","Performance","Security","DB migration","Infrastructure / CI"]},"rationale":{"type":"string"}}}'
 
       - name: Post assessment
@@ -183,18 +184,24 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ steps.pr.outputs.number }}
           OUTPUT: ${{ steps.assess.outputs.structured_output }}
+          SHA: ${{ steps.pr.outputs.head }}
+          BRANCH: ${{ steps.pr.outputs.branch }}
+          FILES: ${{ steps.input.outputs.files }}
+          INS: ${{ steps.input.outputs.insertions }}
+          DEL: ${{ steps.input.outputs.deletions }}
+          TRUNCATED: ${{ steps.input.outputs.truncated }}
         run: |
           set -euo pipefail
           printf '%s' "$OUTPUT" | jq -e '.risk and .score and .category and .rationale' > /dev/null
 
           jq -n --argjson a "$OUTPUT" \
-            --arg pr "$PR" --arg sha '${{ steps.pr.outputs.head }}' \
-            --arg branch '${{ steps.pr.outputs.branch }}' --arg model "claude-opus-5" \
+            --arg pr "$PR" --arg sha "$SHA" \
+            --arg branch "$BRANCH" --arg model "claude-opus-5" \
             --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
-            --argjson files '${{ steps.input.outputs.files }}' \
-            --argjson ins '${{ steps.input.outputs.insertions }}' \
-            --argjson del '${{ steps.input.outputs.deletions }}' \
-            --arg truncated '${{ steps.input.outputs.truncated }}' \
+            --argjson files "$FILES" \
+            --argjson ins "$INS" \
+            --argjson del "$DEL" \
+            --arg truncated "$TRUNCATED" \
             '{pr: ($pr|tonumber), branch: $branch, sha: $sha, model: $model, run: $run,
               files_changed: $files, insertions: $ins, deletions: $del,
               diff_truncated: ($truncated == "yes")} + $a' > risk.json
