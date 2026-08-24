@@ -23,9 +23,10 @@ REPO = Path(__file__).resolve().parents[2]
 EXCLUDE = [":(exclude)docs/", ":(exclude)package-lock.json"]
 MERGE_RE = re.compile(r"Merge pull request #(\d+) from \S+?/(\S+)")
 
-# Patterns that must never appear in a generated input file.
+# Patterns that must never appear in a generated input file. The bracketed letters
+# match the same text but keep the pattern from matching its own source.
 LEAK_RE = re.compile(
-    r"Risk:\s*[LMH]\b|Risk rationale|Rizik ostaje|^\+.*Category:\s*"
+    r"Risk:\s*[LMH]\b|Risk rat[i]onale|Rizik osta[j]e|^\+.*Category:\s*"
     r"(Feature|Security|Bug fix|Refactoring|Performance|DB migration|Infrastructure)",
     re.M | re.I)
 
