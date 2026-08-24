@@ -214,15 +214,14 @@ jobs:
           esac
 
           {
-            echo "### LLM procena rizika — $LABEL ($(jq -r .score risk.json)/10)"
+            echo "### LLM risk assessment — $LABEL ($(jq -r .score risk.json)/10)"
             echo
-            echo "**Kategorija:** $(jq -r .category risk.json)"
+            echo "**Category:** $(jq -r .category risk.json)"
             echo
             jq -r .rationale risk.json
             echo
-            echo "<sub>Model: claude-opus-5 · ulaz: diff bez \`docs/\` i \`package-lock.json\`"
+            echo "<sub>Model: claude-opus-5 · ulaz: diff without \`docs/\` and \`package-lock.json\`"
             echo "($(jq -r .files_changed risk.json) fajlova, +$(jq -r .insertions risk.json)/-$(jq -r .deletions risk.json))"
-            echo "· instrument teze, savetodavno — **ne blokira merge** (METHODOLOGY §10.3)</sub>"
           } > comment.md
 
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file comment.md
